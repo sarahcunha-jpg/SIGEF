@@ -118,7 +118,13 @@ const App = {
     if(ficha.situacao_planilha === 'Arquivada') return { status:'disponivel', msg:'Disponível para separação.' };
     return { status:'indisponivel', msg:`Indisponível: ${ficha.situacao_planilha}.` };
   },
-  buscaFicha(lote, codigo){ return Store.get('fichas').find(f => f.lote === lote && f.codigo_produto === codigo); },
+  buscaFichaPorLote(lote){
+    const fichas = Store.get('fichas').filter(f => f.lote === lote);
+    if(fichas.length === 0) return null;
+    const disponivel = fichas.find(f => f.situacao_planilha === 'Arquivada' && !U.emprestimoAtivo(f.id));
+    if(disponivel) return disponivel;
+    return fichas[0];
+  },
   screenDashboard(){ return Auth.current().perfil==='admin' ? this.dashboardAdmin() : this.dashboardSolicitante(); },
   dashboardAdmin(){
     const sols = Store.get('solicitacoes'), fichas = Store.get('fichas'), emps = Store.get('emprestimos');
@@ -242,18 +248,17 @@ const App = {
   },
   screenNovaSolicitacao(){
     const items = this.state.novaItems || [];
-    return `<div class="card"><h3>Nova solicitação</h3><p style="margin-top:4px;font-size:13px;">Informe os itens (lote + código do produto). A mesma combinação é a identificação única.</p><div id="nova-itens" style="margin-top:16px;">${items.map((it,i)=>this.renderNovaItemRow(it,i)).join('') || '<div class="table-empty">Nenhum item adicionado.</div>'}</div><button class="btn btn-secondary btn-sm" id="btn-add-item" style="margin-top:8px;">+ Adicionar item</button><div class="field" style="margin-top:18px;"><label>Observações (opcional)</label><textarea id="nova-obs" rows="2" placeholder="Alguma informação adicional?"></textarea></div><div class="form-actions"><button class="btn btn-primary" id="btn-enviar-sol">Enviar solicitação</button></div></div>`;
+    return `<div class="card"><h3>Nova solicitação</h3><p style="margin-top:4px;font-size:13px;">Informe o número do lote. O sistema buscará a ficha correspondente.</p><div id="nova-itens" style="margin-top:16px;">${items.map((it,i)=>this.renderNovaItemRow(it,i)).join('') || '<div class="table-empty">Nenhum item adicionado.</div>'}</div><button class="btn btn-secondary btn-sm" id="btn-add-item" style="margin-top:8px;">+ Adicionar item</button><div class="field" style="margin-top:18px;"><label>Observações (opcional)</label><textarea id="nova-obs" rows="2" placeholder="Alguma informação adicional?"></textarea></div><div class="form-actions"><button class="btn btn-primary" id="btn-enviar-sol">Enviar solicitação</button></div></div>`;
   },
   renderNovaItemRow(it, i){
-    const ficha = it.lote && it.codigo ? this.buscaFicha(it.lote, it.codigo) : null;
-    const analise = (it.lote && it.codigo) ? this.analisarFicha(ficha) : null;
+    const ficha = it.lote ? this.buscaFichaPorLote(it.lote) : null;
+    const analise = it.lote ? this.analisarFicha(ficha) : null;
     let analiseHtml = '';
     if(analise) {
       analiseHtml = `<div class="analise-box" style="grid-column:1/-1;font-size:12px;margin-top:4px;">${analise.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':analise.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':analise.status==='indisponivel'?'<span class="badge badge-yellow">Indisponível</span>':'<span class="badge badge-gray">Não encontrada</span>'} — ${U.esc(analise.msg)}</div>`;
     }
-    return `<div class="item-row" data-idx="${i}">
+    return `<div class="item-row" data-idx="${i}" style="grid-template-columns:1fr auto;">
       <div><label style="font-size:11px;color:var(--text);">Lote</label><input type="text" class="nova-lote" value="${U.esc(it.lote||'')}" placeholder="Ex.: 45821" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;"></div>
-      <div><label style="font-size:11px;color:var(--text);">Código</label><input type="text" class="nova-codigo" value="${U.esc(it.codigo||'')}" placeholder="Ex.: PROD-100" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;"></div>
       <button class="btn btn-danger btn-sm btn-rm-item" data-idx="${i}">✕</button>
       ${analiseHtml}
     </div>`;
@@ -296,7 +301,14 @@ const App = {
     const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id);
     const itensE = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id);
     const linhas = itensE.map(ie=>{ const f = U.findFicha(ie.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(f.situacao_planilha)}</td></tr>`; }).join('');
-    const body = `<div class="receipt"><div class="receipt-head"><div><div class="brand">SIGEF<small>Sistema Integrado de Gestão de Fichas</small></div></div><div class="doc"><strong>COMPROVANTE DE ENTREGA</strong>Solicitação ${U.esc(sol?.numero||'—')}<br>Entrega #${e.id}</div></div><div class="receipt-grid"><div class="f"><strong>Solicitante</strong>${U.esc(sol?.solicitante_nome||'—')}</div><div class="f"><strong>Setor do solicitante</strong>${U.esc(sol?.setor||'—')}</div><div class="f"><strong>Recebido por</strong>${U.esc(e.nome_recebedor)}</div><div class="f"><strong>Setor do recebedor</strong>${U.esc(e.setor_recebedor||'—')}</div><div class="f"><strong>Data da entrega</strong>${U.fmtDate(e.data_entrega)}</div><div class="f"><strong>Responsável pela entrega</strong>${U.esc(e.responsavel_entrega)}</div></div><table><thead><tr><th>Lote</th><th>Código do produto</th><th>Situação documental</th></tr></thead><tbody>${linhas}</tbody></table><p style="font-size:12px;margin-top:8px;"><strong>Quantidade de fichas desta entrega:</strong> ${itensE.length}</p><div class="sign-area"><div class="sign-line">Assinatura de quem recebeu</div><div class="sign-line">Responsável pela entrega</div></div></div>`;
+    const body = `<div class="receipt"><div class="receipt-head"><div><div class="brand">SIGEF<small>Sistema Integrado de Gestão de Fichas</small></div></div><div class="doc"><strong>COMPROVANTE DE ENTREGA</strong>Solicitação ${U.esc(sol?.numero||'—')}<br>Entrega #${e.id}</div></div>
+      <div class="receipt-grid">
+        <div class="f"><strong>Solicitante</strong>${U.esc(sol?.solicitante_nome||'—')}</div>
+        <div class="f"><strong>Setor do solicitante</strong>${U.esc(sol?.setor||'—')}</div>
+        <div class="f"><strong>Data da entrega</strong>${U.fmtDate(e.data_entrega)}</div>
+        <div class="f"><strong>Responsável pela entrega</strong>${U.esc(e.responsavel_entrega)}</div>
+      </div>
+      <table><thead><tr><th>Lote</th><th>Código do produto</th><th>Situação documental</th></tr></thead><tbody>${linhas}</tbody></table><p style="font-size:12px;margin-top:8px;"><strong>Quantidade de fichas desta entrega:</strong> ${itensE.length}</p><div class="sign-area"><div class="sign-line">Assinatura de quem recebeu</div><div class="sign-line">Responsável pela entrega</div></div></div>`;
     this.openModal('Comprovante de entrega', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print">🖨️ Imprimir</button>`, true);
     document.getElementById('btn-print').addEventListener('click', ()=>window.print());
   },
@@ -433,16 +445,16 @@ const App = {
     configuracoes: function(){ document.getElementById('btn-reset')?.addEventListener('click', ()=>{ if(confirm('Tem certeza que deseja restaurar todos os dados de demonstração? Isso apagará suas alterações.')){ Store.reset(); U.toast('Dados restaurados!','success'); this.navigate('dashboard'); } }); },
     'nova-solicitacao': function(){
       this.state.novaItems = this.state.novaItems || [];
-      document.getElementById('btn-add-item')?.addEventListener('click', ()=>{ this.state.novaItems.push({ lote:'', codigo:'' }); this.renderScreen(); });
+      document.getElementById('btn-add-item')?.addEventListener('click', ()=>{ this.state.novaItems.push({ lote:'' }); this.renderScreen(); });
       const container = document.getElementById('nova-itens');
       container?.addEventListener('click', e=>{ const rmBtn = e.target.closest('.btn-rm-item'); if(rmBtn){ this.state.novaItems.splice(Number(rmBtn.dataset.idx), 1); this.renderScreen(); } });
       container?.addEventListener('input', e=>{
-        if(e.target.classList.contains('nova-lote') || e.target.classList.contains('nova-codigo')){
+        if(e.target.classList.contains('nova-lote')){
           const row = e.target.closest('.item-row'); const idx = Number(row.dataset.idx);
-          if(e.target.classList.contains('nova-lote')) this.state.novaItems[idx].lote = e.target.value.trim(); else this.state.novaItems[idx].codigo = e.target.value.trim();
+          this.state.novaItems[idx].lote = e.target.value.trim();
           const it = this.state.novaItems[idx];
-          const ficha = it.lote && it.codigo ? this.buscaFicha(it.lote, it.codigo) : null;
-          const analise = (it.lote && it.codigo) ? this.analisarFicha(ficha) : null;
+          const ficha = it.lote ? this.buscaFichaPorLote(it.lote) : null;
+          const analise = it.lote ? this.analisarFicha(ficha) : null;
           let analiseHtml = '';
           if(analise) {
             analiseHtml = `<div class="analise-box" style="grid-column:1/-1;font-size:12px;margin-top:4px;">${analise.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':analise.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':analise.status==='indisponivel'?'<span class="badge badge-yellow">Indisponível</span>':'<span class="badge badge-gray">Não encontrada</span>'} — ${U.esc(analise.msg)}</div>`;
@@ -453,11 +465,11 @@ const App = {
         }
       });
       document.getElementById('btn-enviar-sol')?.addEventListener('click', ()=>{
-        const itensValidos = this.state.novaItems.filter(i=>i.lote && i.codigo);
+        const itensValidos = this.state.novaItems.filter(i=>i.lote);
         if(!itensValidos.length){ U.toast('Adicione pelo menos um item válido.','error'); return; }
         const user = Auth.current(); const obs = document.getElementById('nova-obs').value.trim();
         const nova = Store.add('solicitacoes', { numero: 'SOL-2025-' + String(Store.get('solicitacoes').length + 1).padStart(4,'0'), solicitante_id: user.id, solicitante_nome: user.nome, setor: user.setor, data_criacao: U.todayISO(), situacao: 'Recebida', observacoes: obs });
-        itensValidos.forEach(it=>{ const f = this.buscaFicha(it.lote, it.codigo); Store.add('itens_solicitacao', { solicitacao_id: nova.id, ficha_id: f ? f.id : null, situacao_item: f ? this.analisarFicha(f).status : 'Não encontrada', lote_snapshot: f ? null : it.lote, codigo_snapshot: f ? null : it.codigo }); });
+        itensValidos.forEach(it=>{ const f = this.buscaFichaPorLote(it.lote); Store.add('itens_solicitacao', { solicitacao_id: nova.id, ficha_id: f ? f.id : null, situacao_item: f ? this.analisarFicha(f).status : 'Não encontrada', lote_snapshot: f ? null : it.lote, codigo_snapshot: null }); });
         this.state.novaItems = []; U.toast('Solicitação enviada com sucesso!','success'); this.navigate('minhas-solicitacoes');
       });
     },
