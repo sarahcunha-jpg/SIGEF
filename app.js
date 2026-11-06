@@ -42,11 +42,11 @@ const App = {
   renderLogin(){
     document.getElementById('app').innerHTML = `
       <div class="login-wrap"><div class="login-card">
-        <div class="login-logo"><div class="sigef">SIGEF</div><div class="sub">Sistema Integrado de Gestão de Fichas</div></div>
+        <div class="login-logo"><div class="sigef">SIGEF</div><div class="sub">Gestão de Fichas</div></div>
         <h2>Acessar o sistema</h2>
         <form id="login-form">
-          <div class="field"><label>E-mail</label><input type="email" id="login-email" required placeholder="seu@email.com" autocomplete="username"></div>
-          <div class="field"><label>Senha</label><input type="password" id="login-senha" required placeholder="••••••••" autocomplete="current-password"></div>
+          <div class="field"><label>E-mail</label><input type="email" id="login-email" required placeholder="seu@email.com"></div>
+          <div class="field"><label>Senha</label><input type="password" id="login-senha" required placeholder="••••••••"></div>
           <button type="submit" class="btn btn-primary btn-block">Entrar</button>
         </form>
         <div class="demo-box"><strong>Credenciais de demonstração:</strong><br>Admin: <code>admin@sigef.com</code> / <code>admin123</code><br>Solicitante: <code>joao@empresa.com</code> / <code>123456</code></div>
@@ -54,11 +54,8 @@ const App = {
     document.getElementById('login-form').addEventListener('submit', e => {
       e.preventDefault();
       const u = Auth.login(document.getElementById('login-email').value.trim(), document.getElementById('login-senha').value);
-      if(u){ 
-        U.toast('Bem-vindo(a), '+u.nome,'success'); 
-        this.renderShell(); 
-        this.navigate('dashboard'); 
-      } else U.toast('Credenciais inválidas.','error');
+      if(u){ U.toast('Bem-vindo(a), '+u.nome,'success'); this.renderShell(); this.navigate('dashboard'); } 
+      else U.toast('Credenciais inválidas.','error');
     });
   },
   renderShell(){
@@ -67,11 +64,11 @@ const App = {
       <div class="shell">
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div><div class="sub">Gestão de Fichas</div></div>
-          <nav class="nav" id="nav"></nav><div class="sidebar-footer">Protótipo de demonstração</div>
+          <nav class="nav" id="nav"></nav><div class="sidebar-footer">v1.0 - Protótipo</div>
         </aside>
         <div class="main">
           <header class="header">
-            <div style="display:flex;align-items:center;gap:12px;"><button class="hamburger" id="hamburger">☰</button><h1 id="page-title">Painel</h1></div>
+            <div style="display:flex;align-items:center;gap:16px;"><button class="hamburger" id="hamburger">☰</button><h1 id="page-title">Painel</h1></div>
             <div class="user-chip">
               <div class="user-meta" style="text-align:right;"><strong>${U.esc(user.nome)}</strong><small>${U.esc(user.perfil==='admin'?'Administrador':'Solicitante')} · ${U.esc(user.setor)}</small></div>
               <div class="avatar">${U.esc(user.nome.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase())}</div>
@@ -87,7 +84,7 @@ const App = {
   },
   renderNav(){
     const user = Auth.current(); const admin = user.perfil==='admin';
-    const items = admin ? [['dashboard','Painel','📊'],['solicitacoes','Solicitações','📥'],['fichas','Consulta de Fichas','🗂️'],['entregas','Entregas/Retiradas','📦'],['emprestimos','Empréstimos','🔄'],['devolucoes','Devoluções','↩️'],['historico','Histórico','🕓'],['relatorios','Relatórios','📈'],['planilha','Planilha (demo)','📑'],['emails','E-mails (demo)','✉️'],['usuarios','Usuários','👥'],['configuracoes','Configurações','⚙️']] : [['dashboard','Meu Painel','📊'],['nova-solicitacao','Nova Solicitação','➕'],['minhas-solicitacoes','Minhas Solicitações','📥'],['minhas-fichas-emprestadas','Minhas Fichas Emprestadas','🔄'],['minhas-devolucoes','Minhas Devoluções','↩️'],['meu-historico','Meu Histórico','🕓'],['minha-conta','Minha Conta','👤']];
+    const items = admin ? [['dashboard','Painel','📊'],['solicitacoes','Solicitações','📥'],['fichas','Consulta','🗂️'],['entregas','Retiradas','📦'],['emprestimos','Empréstimos','🔄'],['devolucoes','Devoluções','↩️'],['historico','Histórico','🕓'],['relatorios','Relatórios','📈'],['planilha','Planilha','📑'],['emails','E-mails','✉️'],['usuarios','Usuários','👥'],['configuracoes','Configurações','⚙️']] : [['dashboard','Meu Painel','📊'],['nova-solicitacao','Nova Solicitação','➕'],['minhas-solicitacoes','Minhas Solicitações','📥'],['minhas-fichas-emprestadas','Fichas Comigo','🔄'],['minhas-devolucoes','Minhas Devoluções','↩️'],['meu-historico','Meu Histórico','🕓'],['minha-conta','Minha Conta','👤']];
     const nav = document.getElementById('nav');
     nav.innerHTML = items.map(([key,label,ico]) => `<div class="nav-item ${this.state.screen===key?'active':''}" data-screen="${key}"><span class="ico">${ico}</span><span>${U.esc(label)}</span></div>`).join('');
     nav.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', () => { this.state.sidebarOpen=false; this.navigate(el.dataset.screen); }));
@@ -99,7 +96,7 @@ const App = {
   },
   renderScreen(){
     const user = Auth.current(); if(!user) return;
-    const titles = {dashboard: user.perfil==='admin'?'Painel Administrativo':'Meu Painel',solicitacoes:'Solicitações',fichas:'Consulta de Fichas',entregas:'Histórico de Retiradas',emprestimos:'Empréstimos',devolucoes:'Devoluções',historico:'Histórico',relatorios:'Relatórios',planilha:'Planilha (demo)',emails:'E-mails (demo)',usuarios:'Usuários',configuracoes:'Configurações','nova-solicitacao':'Nova Solicitação','minhas-solicitacoes':'Minhas Solicitações','minhas-fichas-emprestadas':'Minhas Fichas Emprestadas','minhas-devolucoes':'Minhas Devoluções','meu-historico':'Meu Histórico','minha-conta':'Minha Conta','solicitacao-detalhe':'Detalhe da Solicitação'};
+    const titles = {dashboard: user.perfil==='admin'?'Painel Administrativo':'Meu Painel',solicitacoes:'Solicitações',fichas:'Consulta de Fichas',entregas:'Histórico de Retiradas',emprestimos:'Gestão de Empréstimos',devolucoes:'Devoluções',historico:'Histórico',relatorios:'Relatórios',planilha:'Planilha',emails:'E-mails',usuarios:'Usuários',configuracoes:'Configurações','nova-solicitacao':'Nova Solicitação','minhas-solicitacoes':'Minhas Solicitações','minhas-fichas-emprestadas':'Minhas Fichas','minhas-devolucoes':'Minhas Devoluções','meu-historico':'Meu Histórico','minha-conta':'Minha Conta','solicitacao-detalhe':'Detalhe da Solicitação'};
     document.getElementById('page-title').textContent = titles[this.state.screen] || 'SIGEF';
     const el = document.getElementById('content');
     try { el.innerHTML = this.screenHTML(this.state.screen, this.state.params); } catch(e){ el.innerHTML = `<div class="card">Erro: ${U.esc(e.message)}</div>`; }
@@ -112,10 +109,10 @@ const App = {
   metricCard(label, value, type=''){ return `<div class="card metric ${type}"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
   hbar(label, value, total, color){ const pct = total ? Math.round(value/total*100) : 0; return `<div class="hbar"><div class="hbar-label">${U.esc(label)}</div><div class="hbar-track"><div class="hbar-fill" style="width:${pct}%;background:${color}"></div></div><div class="hbar-value">${value}</div></div>`; },
   analisarFicha(ficha){
-    if(!ficha) return { status:'nao_encontrada', msg:'Ficha não encontrada na base. Sinalizar para conferência administrativa.' };
+    if(!ficha) return { status:'nao_encontrada', msg:'Ficha não encontrada na base.' };
     const emp = U.emprestimoAtivo(ficha.id);
-    if(emp) return { status:'emprestada', msg:`Emprestada para ${emp.recebedor_nome} (${emp.recebedor_setor}). Aguarde a devolução.` };
-    if(ficha.situacao_planilha === 'Arquivada') return { status:'disponivel', msg:'Disponível para separação.' };
+    if(emp) return { status:'emprestada', msg:`Emprestada para ${emp.recebedor_nome}.` };
+    if(ficha.situacao_planilha === 'Arquivada') return { status:'disponivel', msg:'Disponível.' };
     return { status:'indisponivel', msg:`Indisponível: ${ficha.situacao_planilha}.` };
   },
   buscaFichaPorLote(lote){
@@ -140,11 +137,11 @@ const App = {
     for(let i=6;i>=0;i--){ const d = new Date(); d.setDate(d.getDate()-i); const key = d.toISOString().slice(0,10); labels.push(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})); vals.push(sols.filter(s=>s.data_criacao.slice(0,10)===key).length); }
     const maxV = Math.max(1, ...vals);
     return `
-      <div class="grid grid-4">${this.metricCard('Solicitações recebidas', sols.length)}${this.metricCard('Aguardando atendimento', sols.filter(s=>s.situacao==='Recebida'||s.situacao==='Em análise').length,'blue')}${this.metricCard('Parcialmente atendidas', sols.filter(s=>s.situacao==='Parcialmente atendida').length,'yellow')}${this.metricCard('Concluídas', sols.filter(s=>s.situacao==='Concluída').length,'green')}</div>
-      <div class="grid grid-4" style="margin-top:16px;">${this.metricCard('Fichas retiradas/entregues', totalEntregue,'green')}${this.metricCard('Fichas emprestadas', emprestadas,'red')}${this.metricCard('Devoluções p/ conferir', devolPend.length,'yellow')}${this.metricCard('Fichas em correção', emCorrecao,'yellow')}</div>
+      <div class="grid grid-4">${this.metricCard('Solicitações recebidas', sols.length)}${this.metricCard('Aguardando', sols.filter(s=>s.situacao==='Recebida'||s.situacao==='Em análise').length,'blue')}${this.metricCard('Parciais', sols.filter(s=>s.situacao==='Parcialmente atendida').length,'yellow')}${this.metricCard('Concluídas', sols.filter(s=>s.situacao==='Concluída').length,'green')}</div>
+      <div class="grid grid-4" style="margin-top:20px;">${this.metricCard('Fichas retiradas', totalEntregue,'green')}${this.metricCard('Fichas emprestadas', emprestadas,'red')}${this.metricCard('Devoluções p/ conferir', devolPend.length,'yellow')}${this.metricCard('Fichas em correção', emCorrecao,'yellow')}</div>
       <div class="section grid grid-2">
-        <div class="card"><h3 style="margin-bottom:14px;">Solicitações nos últimos 7 dias</h3><div class="chart-bars">${labels.map((l,i)=>`<div class="bar-col"><div class="bar-value">${vals[i]}</div><div class="bar" style="height:${(vals[i]/maxV*100)||2}%"></div><div class="bar-label">${l}</div></div>`).join('')}</div></div>
-        <div class="card"><h3 style="margin-bottom:14px;">Situação das fichas</h3>${this.hbar('Arquivadas', arquivadas, fichas.length,'var(--green)')}${this.hbar('Em correção', emCorrecao, fichas.length,'var(--yellow)')}${this.hbar('Pendente FO', pFO, fichas.length,'var(--yellow)')}${this.hbar('Pendente RA', pRA, fichas.length,'var(--yellow)')}${this.hbar('Em revisão', emRevisao, fichas.length,'var(--blue)')}${this.hbar('Emprestadas', emprestadas, fichas.length,'var(--red)')}</div>
+        <div class="card"><h3 style="margin-bottom:20px;">Solicitações nos últimos 7 dias</h3><div class="chart-bars">${labels.map((l,i)=>`<div class="bar-col"><div class="bar-value">${vals[i]}</div><div class="bar" style="height:${(vals[i]/maxV*100)||2}%"></div><div class="bar-label">${l}</div></div>`).join('')}</div></div>
+        <div class="card"><h3 style="margin-bottom:20px;">Situação das fichas</h3>${this.hbar('Arquivadas', arquivadas, fichas.length,'var(--success)')}${this.hbar('Em correção', emCorrecao, fichas.length,'var(--warning)')}${this.hbar('Pendente FO', pFO, fichas.length,'var(--warning)')}${this.hbar('Pendente RA', pRA, fichas.length,'var(--warning)')}${this.hbar('Em revisão', emRevisao, fichas.length,'var(--info)')}${this.hbar('Emprestadas', emprestadas, fichas.length,'var(--danger)')}</div>
       </div>
       <div class="section grid grid-2">
         <div class="card"><div class="section-head"><h3>Solicitações recentes</h3><button class="btn btn-secondary btn-sm" data-nav="solicitacoes">Ver todas</button></div>${sols.slice().sort((a,b)=>b.data_criacao.localeCompare(a.data_criacao)).slice(0,5).map(s=>`<div class="analysis-item" style="cursor:pointer" data-sol-detail="${s.id}"><div class="info"><strong>${U.esc(s.numero)}</strong> · ${U.esc(s.solicitante_nome)}<br><span class="reason">${U.esc(s.setor)} · ${U.fmtDateTime(s.data_criacao)}</span></div><div>${U.badgeSol(s.situacao)}</div></div>`).join('') || '<div class="table-empty">Nenhuma solicitação.</div>'}</div>
@@ -181,9 +178,9 @@ const App = {
     const user = Auth.current();
     const backScreen = user.perfil === 'admin' ? 'solicitacoes' : 'minhas-solicitacoes';
     return `<button class="btn btn-secondary btn-sm" data-nav="${backScreen}">← Voltar</button>
-      <div class="card" style="margin-top:14px;"><div class="section-head"><h2>${U.esc(s.numero)}</h2><div>${U.badgeSol(s.situacao)}</div></div><div class="info-list"><div class="info-row"><span class="k">Solicitante</span><span class="v">${U.esc(s.solicitante_nome)}</span></div><div class="info-row"><span class="k">Setor</span><span class="v">${U.esc(s.setor)}</span></div><div class="info-row"><span class="k">Data do pedido</span><span class="v">${U.fmtDateTime(s.data_criacao)}</span></div><div class="info-row"><span class="k">Observações</span><span class="v">${U.esc(s.observacoes||'—')}</span></div><div class="info-row"><span class="k">Progresso</span><span class="v">${totalEntregue}/${total} (${pct}%) — restam ${restantes}</span></div></div></div>
-      <div class="section card"><h3 style="margin-bottom:10px;">Itens</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação documental</th><th>Situação do item</th><th>Entregue</th></tr></thead><tbody>${itens.map(it=>{ const f = U.findFicha(it.ficha_id); const lote = f ? f.lote : (it.lote_snapshot||'—'), codigo = f ? f.codigo_produto : (it.codigo_snapshot||'—'); const sitPlan = f ? f.situacao_planilha : 'Não encontrada'; const entregue = Store.get('itens_entrega').some(ie=>ie.ficha_id===it.ficha_id && entregas.some(e=>e.id===ie.entrega_id)); return `<tr><td>${U.esc(lote)}</td><td>${U.esc(codigo)}</td><td>${U.badgeSit(sitPlan)}</td><td>${U.badgeSit(it.situacao_item)}</td><td>${entregue?'<span class="badge badge-green">Sim</span>':'<span class="badge badge-gray">Não</span>'}</td></tr>`; }).join('')}</tbody></table></div></div>
-      ${user.perfil==='admin' ? `<div class="section card"><div class="section-head"><h3>Retiradas registradas</h3><button class="btn btn-primary btn-sm" data-nova-entrega="${s.id}" ${restantes<=0?'disabled':''}>+ Registrar Retirada</button></div>${entregas.length ? entregas.map(e=>{ const itensE = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); return `<div class="analysis-item"><div class="info"><strong>Retirada #${e.id}</strong> — Data: ${U.fmtDate(e.data_entrega)}<br><span class="reason">Retirado por ${U.esc(e.nome_recebedor)} (${U.esc(e.setor_recebedor)}) — ${itensE.length} ficha(s)</span></div><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></div>`; }).join('') : '<div class="table-empty">Nenhuma retirada.</div>'}</div>` : ''}`;
+      <div class="card" style="margin-top:20px;"><div class="section-head"><h2>${U.esc(s.numero)}</h2><div>${U.badgeSol(s.situacao)}</div></div><div class="info-list"><div class="info-row"><span class="k">Solicitante</span><span class="v">${U.esc(s.solicitante_nome)}</span></div><div class="info-row"><span class="k">Setor</span><span class="v">${U.esc(s.setor)}</span></div><div class="info-row"><span class="k">Data do pedido</span><span class="v">${U.fmtDateTime(s.data_criacao)}</span></div><div class="info-row"><span class="k">Observações</span><span class="v">${U.esc(s.observacoes||'—')}</span></div><div class="info-row"><span class="k">Progresso</span><span class="v">${totalEntregue}/${total} (${pct}%) — restam ${restantes}</span></div></div></div>
+      <div class="section card"><h3 style="margin-bottom:16px;">Itens</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação doc.</th><th>Situação item</th><th>Retirado</th></tr></thead><tbody>${itens.map(it=>{ const f = U.findFicha(it.ficha_id); const lote = f ? f.lote : (it.lote_snapshot||'—'), codigo = f ? f.codigo_produto : (it.codigo_snapshot||'—'); const sitPlan = f ? f.situacao_planilha : 'Não encontrada'; const entregue = Store.get('itens_entrega').some(ie=>ie.ficha_id===it.ficha_id && entregas.some(e=>e.id===ie.entrega_id)); return `<tr><td>${U.esc(lote)}</td><td>${U.esc(codigo)}</td><td>${U.badgeSit(sitPlan)}</td><td>${U.badgeSit(it.situacao_item)}</td><td>${entregue?'<span class="badge badge-green">Sim</span>':'<span class="badge badge-gray">Não</span>'}</td></tr>`; }).join('')}</tbody></table></div></div>
+      ${user.perfil==='admin' ? `<div class="section card"><div class="section-head"><h3>Retiradas registradas</h3><button class="btn btn-primary btn-sm" data-nova-entrega="${s.id}" ${restantes<=0?'disabled':''}>+ Registrar Retirada</button></div>${entregas.length ? entregas.map(e=>{ const itensE = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); return `<div class="analysis-item"><div class="info"><strong>Retirada #${e.id}</strong> — Data: ${U.fmtDate(e.data_entrega)}<br><span class="reason">Retirado por ${U.esc(e.nome_recebedor)} — ${itensE.length} ficha(s)</span></div><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></div>`; }).join('') : '<div class="table-empty">Nenhuma retirada.</div>'}</div>` : ''}`;
   },
   screenFichas(){
     return `<div class="filter-bar"><input type="text" id="f-fichas-busca" placeholder="Buscar por lote ou código..."><select id="f-fichas-sit"><option value="">Todas as situações</option><option>Arquivada</option><option>Em correção</option><option>Pendente de FO</option><option>Pendente de RA</option><option>Em revisão</option></select><select id="f-fichas-aba"><option value="">Todas as abas</option><option>Arquivadas</option><option>Em Correção</option></select></div>
@@ -201,17 +198,17 @@ const App = {
   },
   screenEntregas(){
     const entregas = Store.get('entregas').slice().sort((a,b)=>b.timestamp_registro.localeCompare(a.timestamp_registro));
-    return `<div class="table-wrap"><table><thead><tr><th>#</th><th>Solicitação</th><th>Retirado por</th><th>Setor</th><th>Responsável</th><th>Data da Retirada</th><th>Fichas</th><th>Ação</th></tr></thead><tbody>${entregas.length ? entregas.map(e=>{ const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id); const qtd = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id).length; return `<tr><td>#${e.id}</td><td>${U.esc(sol?.numero||'—')}</td><td>${U.esc(e.nome_recebedor)}</td><td>${U.esc(e.setor_recebedor)}</td><td>${U.esc(e.responsavel_entrega)}</td><td>${U.fmtDate(e.data_entrega)}</td><td>${qtd}</td><td><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></td></tr>`; }).join('') : `<tr><td colspan="8" class="table-empty">Nenhuma retirada registrada.</td></tr>`}</tbody></table></div>`;
+    return `<div class="table-wrap"><table><thead><tr><th>#</th><th>Solicitação</th><th>Retirado por</th><th>Setor</th><th>Responsável</th><th>Data</th><th>Fichas</th><th>Ação</th></tr></thead><tbody>${entregas.length ? entregas.map(e=>{ const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id); const qtd = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id).length; return `<tr><td>#${e.id}</td><td>${U.esc(sol?.numero||'—')}</td><td>${U.esc(e.nome_recebedor)}</td><td>${U.esc(e.setor_recebedor)}</td><td>${U.esc(e.responsavel_entrega)}</td><td>${U.fmtDate(e.data_entrega)}</td><td>${qtd}</td><td><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></td></tr>`; }).join('') : `<tr><td colspan="8" class="table-empty">Nenhuma retirada registrada.</td></tr>`}</tbody></table></div>`;
   },
   screenEmprestimos(){
     const emps = Store.get('emprestimos').slice().sort((a,b)=>b.data_emprestimo.localeCompare(a.data_emprestimo));
-    return `<div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Recebedor</th><th>Setor</th><th>Empréstimo</th><th>Status</th><th>Ações</th></tr></thead><tbody>${emps.length ? emps.map(e=>{ const f = U.findFicha(e.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(e.recebedor_nome)}</td><td>${U.esc(e.recebedor_setor)}</td><td>${U.fmtDateTime(e.data_emprestimo)}</td><td>${U.badgeStatusEmp(e.status)}</td><td class="table-actions">${e.status==='Emprestada' ? `<button class="btn btn-warning btn-sm" data-info-devol="${e.id}">Receber declaração</button>` : ''}${e.status==='Devolução informada' ? `<button class="btn btn-success btn-sm" data-confirmar-devol="${e.id}">Confirmar recebimento</button>` : ''}</td></tr>`; }).join('') : `<tr><td colspan="7" class="table-empty">Nenhum empréstimo registrado.</td></tr>`}</tbody></table></div>`;
+    return `<div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Recebedor</th><th>Setor</th><th>Data Emp.</th><th>Status</th><th>Ações (Admin)</th></tr></thead><tbody>${emps.length ? emps.map(e=>{ const f = U.findFicha(e.ficha_id); return `<tr><td><strong>${U.esc(f.lote)}</strong></td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(e.recebedor_nome)}</td><td>${U.esc(e.recebedor_setor)}</td><td>${U.fmtDate(e.data_emprestimo)}</td><td>${U.badgeStatusEmp(e.status)}</td><td class="table-actions">${e.status==='Emprestada' ? `<span class="badge badge-outline">Aguardando usuário</span>` : ''}${e.status==='Devolução informada' ? `<button class="btn btn-success btn-sm" data-confirmar-devol="${e.id}">Confirmar Recebimento</button>` : ''}</td></tr>`; }).join('') : `<tr><td colspan="7" class="table-empty">Nenhum empréstimo registrado.</td></tr>`}</tbody></table></div>`;
   },
   screenDevolucoes(){
     const pend = Store.get('emprestimos').filter(e=>e.status==='Devolução informada');
     const conferidas = Store.get('emprestimos').filter(e=>e.data_confirmacao_fisica);
-    return `<div class="section card"><h3 style="margin-bottom:12px;">Aguardando conferência física</h3>${pend.length ? pend.map(e=>{ const f = U.findFicha(e.ficha_id); return `<div class="analysis-item"><div class="info"><strong>Lote ${U.esc(f.lote)}</strong> — ${U.esc(f.codigo_produto)}<br><span class="reason">${U.esc(e.recebedor_nome)} (${U.esc(e.recebedor_setor)}) informou devolução em ${U.fmtDateTime(e.data_devolucao_informada)}</span></div><button class="btn btn-primary btn-sm" data-confirmar-devol="${e.id}">Conferir e confirmar</button></div>`; }).join('') : '<div class="table-empty">Nenhuma devolução aguardando conferência.</div>'}</div>
-      <div class="section card"><h3 style="margin-bottom:12px;">Devoluções já conferidas</h3>${conferidas.length ? conferidas.map(e=>{ const f = U.findFicha(e.ficha_id); return `<div class="analysis-item"><div class="info"><strong>Lote ${U.esc(f.lote)}</strong> — ${U.esc(f.codigo_produto)}<br><span class="reason">${U.esc(e.recebedor_nome)} · conferida em ${U.fmtDateTime(e.data_confirmacao_fisica)}</span></div>${U.badgeStatusEmp(e.status)}</div>`; }).join('') : '<div class="table-empty">Nenhuma devolução conferida ainda.</div>'}</div>`;
+    return `<div class="section card"><h3 style="margin-bottom:16px;">Aguardando conferência física</h3>${pend.length ? pend.map(e=>{ const f = U.findFicha(e.ficha_id); return `<div class="analysis-item"><div class="info"><strong>Lote ${U.esc(f.lote)}</strong> — ${U.esc(f.codigo_produto)}<br><span class="reason">${U.esc(e.recebedor_nome)} (${U.esc(e.recebedor_setor)}) informou devolução em ${U.fmtDateTime(e.data_devolucao_informada)}</span></div><button class="btn btn-primary btn-sm" data-confirmar-devol="${e.id}">Conferir e confirmar</button></div>`; }).join('') : '<div class="table-empty">Nenhuma devolução aguardando conferência.</div>'}</div>
+      <div class="section card"><h3 style="margin-bottom:16px;">Devoluções já conferidas</h3>${conferidas.length ? conferidas.map(e=>{ const f = U.findFicha(e.ficha_id); return `<div class="analysis-item"><div class="info"><strong>Lote ${U.esc(f.lote)}</strong> — ${U.esc(f.codigo_produto)}<br><span class="reason">${U.esc(e.recebedor_nome)} · conferida em ${U.fmtDateTime(e.data_confirmacao_fisica)}</span></div>${U.badgeStatusEmp(e.status)}</div>`; }).join('') : '<div class="table-empty">Nenhuma devolução conferida ainda.</div>'}</div>`;
   },
   screenHistorico(){
     return `<div class="filter-bar"><input type="text" id="f-hist-busca" placeholder="Buscar por lote, código ou pessoa..."><button class="btn btn-secondary btn-sm" id="btn-hist-limpar">Limpar</button></div><div class="card"><div class="timeline" id="hist-timeline"></div></div>`;
@@ -226,40 +223,40 @@ const App = {
     el.innerHTML = hist.map(h=>{ const f = U.findFicha(h.ficha_id); const lotLabel = f ? `Lote ${f.lote} · ${f.codigo_produto}` : '—'; return `<div class="tl-item"><div class="tl-title">${U.esc(h.tipo_movimentacao)} — ${U.esc(lotLabel)}</div><div class="tl-desc">${U.esc(h.descricao)}</div><div class="tl-meta">${U.esc(h.usuario_responsavel)} · ${U.fmtDateTime(h.data_hora)}</div></div>`; }).join('');
   },
   screenRelatorios(){
-    return `<div class="card no-print"><div class="section-head"><h3>Relatórios</h3><div class="actions"><select id="rel-tipo"><option value="sols">Solicitações por período</option><option value="setor">Solicitações por setor</option><option value="entregues">Fichas retiradas</option><option value="parciais">Retiradas parciais</option><option value="emprestadas">Fichas emprestadas</option><option value="devol">Devoluções pendentes</option><option value="correcao">Fichas em correção</option><option value="indisp">Fichas indisponíveis</option><option value="ficha">Histórico de uma ficha</option></select><input type="date" id="rel-de" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;"><input type="date" id="rel-ate" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;"><input type="text" id="rel-ficha" placeholder="Lote (p/ ficha)" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;width:140px;"><button class="btn btn-primary btn-sm" id="rel-gerar">Gerar</button><button class="btn btn-secondary btn-sm" id="rel-print">🖨️ Imprimir</button></div></div></div>
+    return `<div class="card no-print"><div class="section-head"><h3>Relatórios</h3><div class="actions"><select id="rel-tipo"><option value="sols">Solicitações por período</option><option value="setor">Solicitações por setor</option><option value="entregues">Fichas retiradas</option><option value="emprestadas">Fichas emprestadas</option><option value="devol">Devoluções pendentes</option><option value="ficha">Histórico de uma ficha</option></select><input type="date" id="rel-de" style="padding:10px 16px;border:1px solid var(--border);border-radius:8px;"><input type="date" id="rel-ate" style="padding:10px 16px;border:1px solid var(--border);border-radius:8px;"><input type="text" id="rel-ficha" placeholder="Lote (p/ ficha)" style="padding:10px 16px;border:1px solid var(--border);border-radius:8px;width:140px;"><button class="btn btn-primary btn-sm" id="rel-gerar">Gerar</button><button class="btn btn-secondary btn-sm" id="rel-print">🖨️ Imprimir</button></div></div></div>
       <div class="section card" id="rel-resultado"><div class="table-empty">Selecione o filtro e clique em Gerar.</div></div>`;
   },
   screenPlanilha(){
     const lastSync = Store.get('fichas')[0]?.ultima_consulta || U.todayISO();
-    return `<div class="card"><div class="section-head"><h3>Simulação da planilha Excel</h3><div class="actions"><span style="font-size:12px;color:var(--text);align-self:center;">Última sincronização: <strong>${U.fmtDateTime(lastSync)}</strong></span><button class="btn btn-primary btn-sm" id="btn-sync">🔄 Atualizar agora</button></div></div><div class="demo-box" style="margin-top:10px;"><strong>Modo demonstração:</strong> os dados abaixo são fictícios. O app é somente leitura em relação à planilha. Nenhum arquivo real é acessado ou modificado.</div></div>
-      <div class="section"><h3 style="margin-bottom:10px;">Aba: Arquivadas</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th></tr></thead><tbody>${Store.get('fichas').filter(f=>f.aba_origem==='Arquivadas').map(f=>`<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.badgeSit(f.situacao_planilha)}</td></tr>`).join('')}</tbody></table></div></div>
-      <div class="section"><h3 style="margin-bottom:10px;">Aba: Em Correção</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th></tr></thead><tbody>${Store.get('fichas').filter(f=>f.aba_origem==='Em Correção').map(f=>`<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.badgeSit(f.situacao_planilha)}</td></tr>`).join('')}</tbody></table></div></div>`;
+    return `<div class="card"><div class="section-head"><h3>Simulação da planilha Excel</h3><div class="actions"><span style="font-size:12px;color:var(--text-muted);align-self:center;">Última sincronização: <strong>${U.fmtDateTime(lastSync)}</strong></span><button class="btn btn-primary btn-sm" id="btn-sync">🔄 Atualizar agora</button></div></div><div class="demo-box" style="margin-top:16px;"><strong>Modo demonstração:</strong> os dados abaixo são fictícios.</div></div>
+      <div class="section"><h3 style="margin-bottom:12px;">Aba: Arquivadas</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th></tr></thead><tbody>${Store.get('fichas').filter(f=>f.aba_origem==='Arquivadas').map(f=>`<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.badgeSit(f.situacao_planilha)}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="section"><h3 style="margin-bottom:12px;">Aba: Em Correção</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th></tr></thead><tbody>${Store.get('fichas').filter(f=>f.aba_origem==='Em Correção').map(f=>`<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.badgeSit(f.situacao_planilha)}</td></tr>`).join('')}</tbody></table></div></div>`;
   },
   screenEmails(){
     const emails = Store.get('emails').slice().sort((a,b)=>b.data.localeCompare(a.data));
-    return `<div class="table-wrap"><table><thead><tr><th>Remetente</th><th>Assunto</th><th>Data</th><th>Lotes</th><th>Status</th><th>Ações</th></tr></thead><tbody>${emails.map(m=>`<tr><td>${U.esc(m.remetente_nome)}<br><small>${U.esc(m.remetente)}</small></td><td>${U.esc(m.assunto)}</td><td>${U.fmtDateTime(m.data)}</td><td>${m.lotes_identificados.map(l=>`<span class="badge badge-blue">${U.esc(l)}</span>`).join(' ')}</td><td>${m.status_processamento==='Processado' ? '<span class="badge badge-green">Processado</span>' : '<span class="badge badge-yellow">Pendente</span>'}</td><td class="table-actions"><button class="btn btn-secondary btn-sm" data-email-ver="${m.id}">Ver</button>${m.status_processamento==='Pendente' ? `<button class="btn btn-primary btn-sm" data-email-processar="${m.id}">Processar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="table-wrap"><table><thead><tr><th>Remetente</th><th>Assunto</th><th>Data</th><th>Lotes</th><th>Status</th><th>Ações</th></tr></thead><tbody>${emails.map(m=>`<tr><td>${U.esc(m.remetente_nome)}<br><small>${U.esc(m.remetente)}</small></td><td>${U.esc(m.assunto)}</td><td>${U.fmtDateTime(m.data)}</td><td>${m.lotes_identificados.map(l=>`<span class="badge badge-blue">${U.esc(l)}</span>`).join(' ')}</td><td>${m.status_processamento==='Processado' ? '<span class="badge badge-green">Processado</span>' : '<span class="badge badge-yellow">Pendente</span>'}</td><td class="table-actions"><button class="btn btn-secondary btn-sm" data-email-ver="${m.id}">Ver</button></td></tr>`).join('')}</tbody></table></div>`;
   },
   screenUsuarios(){
     const us = Store.get('usuarios');
-    return `<div class="card"><div class="section-head"><h3>Usuários cadastrados</h3><button class="btn btn-primary btn-sm" id="btn-add-user">+ Novo usuário</button></div><div class="table-wrap" style="margin-top:10px;"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Setor</th><th>Perfil</th><th>Ativo</th><th>Ações</th></tr></thead><tbody>${us.map(u=>`<tr><td>${U.esc(u.nome)}</td><td>${U.esc(u.email)}</td><td>${U.esc(u.setor)}</td><td><span class="badge ${u.perfil==='admin'?'badge-blue':'badge-gray'}">${U.esc(u.perfil)}</span></td><td>${u.ativo?'<span class="badge badge-green">Sim</span>':'<span class="badge badge-red">Não</span>'}</td><td class="table-actions"><button class="btn btn-secondary btn-sm" data-edit-user="${u.id}">Editar</button></td></tr>`).join('')}</tbody></table></div></div>`;
+    return `<div class="card"><div class="section-head"><h3>Usuários cadastrados</h3><button class="btn btn-primary btn-sm" id="btn-add-user">+ Novo usuário</button></div><div class="table-wrap" style="margin-top:16px;"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Setor</th><th>Perfil</th><th>Ativo</th><th>Ações</th></tr></thead><tbody>${us.map(u=>`<tr><td><strong>${U.esc(u.nome)}</strong></td><td>${U.esc(u.email)}</td><td>${U.esc(u.setor)}</td><td><span class="badge ${u.perfil==='admin'?'badge-blue':'badge-gray'}">${U.esc(u.perfil)}</span></td><td>${u.ativo?'<span class="badge badge-green">Sim</span>':'<span class="badge badge-red">Não</span>'}</td><td class="table-actions"><button class="btn btn-secondary btn-sm" data-edit-user="${u.id}">Editar</button></td></tr>`).join('')}</tbody></table></div></div>`;
   },
   screenConfiguracoes(){
-    return `<div class="card"><h3>Configurações do protótipo</h3><p style="margin-top:10px;font-size:13px;line-height:1.7;">Este é um protótipo de demonstração. Os dados são armazenados localmente no navegador (localStorage) e não são enviados para nenhum servidor.</p><div class="info-list" style="margin-top:14px;"><div class="info-row"><span class="k">Versão</span><span class="v">1.0 (protótipo)</span></div><div class="info-row"><span class="k">Persistência</span><span class="v">localStorage</span></div><div class="info-row"><span class="k">Integrações reais</span><span class="v">Nenhuma (Outlook e Excel simulados)</span></div></div><div class="form-actions" style="margin-top:18px;"><button class="btn btn-danger" id="btn-reset">🔄 Restaurar dados de demonstração</button></div></div>`;
+    return `<div class="card"><h3>Configurações do protótipo</h3><p style="margin-top:12px;font-size:14px;color:var(--text-muted);">Este é um protótipo de demonstração. Os dados são armazenados localmente (localStorage).</p><div class="form-actions" style="margin-top:24px;justify-content:flex-start;"><button class="btn btn-danger" id="btn-reset">🔄 Restaurar dados de demonstração</button></div></div>`;
   },
   screenNovaSolicitacao(){
     const items = this.state.novaItems || [];
-    return `<div class="card"><h3>Nova solicitação</h3><p style="margin-top:4px;font-size:13px;">Informe o número do lote. O sistema buscará a ficha correspondente.</p><div id="nova-itens" style="margin-top:16px;">${items.map((it,i)=>this.renderNovaItemRow(it,i)).join('') || '<div class="table-empty">Nenhum item adicionado.</div>'}</div><button class="btn btn-secondary btn-sm" id="btn-add-item" style="margin-top:8px;">+ Adicionar item</button><div class="field" style="margin-top:18px;"><label>Observações (opcional)</label><textarea id="nova-obs" rows="2" placeholder="Alguma informação adicional?"></textarea></div><div class="form-actions"><button class="btn btn-primary" id="btn-enviar-sol">Enviar solicitação</button></div></div>`;
+    return `<div class="card"><h3>Nova solicitação</h3><p style="margin-top:6px;font-size:14px;color:var(--text-muted);">Informe o número do lote. O sistema buscará a ficha correspondente.</p><div id="nova-itens" style="margin-top:24px;">${items.map((it,i)=>this.renderNovaItemRow(it,i)).join('') || '<div class="table-empty">Nenhum item adicionado.</div>'}</div><button class="btn btn-secondary btn-sm" id="btn-add-item" style="margin-top:12px;">+ Adicionar item</button><div class="field" style="margin-top:24px;"><label>Observações (opcional)</label><textarea id="nova-obs" rows="3" placeholder="Alguma informação adicional?"></textarea></div><div class="form-actions"><button class="btn btn-primary" id="btn-enviar-sol">Enviar solicitação</button></div></div>`;
   },
   renderNovaItemRow(it, i){
     const ficha = it.lote ? this.buscaFichaPorLote(it.lote) : null;
     const analise = it.lote ? this.analisarFicha(ficha) : null;
     let analiseHtml = '';
     if(analise) {
-      analiseHtml = `<div class="analise-box" style="grid-column:1/-1;font-size:12px;margin-top:4px;">${analise.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':analise.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':analise.status==='indisponivel'?'<span class="badge badge-yellow">Indisponível</span>':'<span class="badge badge-gray">Não encontrada</span>'} — ${U.esc(analise.msg)}</div>`;
+      analiseHtml = `<div class="analise-box" style="grid-column:1/-1;font-size:13px;margin-top:8px;">${analise.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':analise.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':analise.status==='indisponivel'?'<span class="badge badge-yellow">Indisponível</span>':'<span class="badge badge-gray">Não encontrada</span>'} — ${U.esc(analise.msg)}</div>`;
     }
-    return `<div class="item-row" data-idx="${i}" style="grid-template-columns:1fr auto;">
-      <div><label style="font-size:11px;color:var(--text);">Lote</label><input type="text" class="nova-lote" value="${U.esc(it.lote||'')}" placeholder="Ex.: 45821" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;"></div>
-      <button class="btn btn-danger btn-sm btn-rm-item" data-idx="${i}">✕</button>
+    return `<div class="item-row" data-idx="${i}" style="grid-template-columns:1fr auto; gap:12px; margin-bottom:12px; background:var(--bg-body); padding:16px; border-radius:8px; border:1px solid var(--border);">
+      <div><label style="font-size:12px;font-weight:600;color:var(--text-main);margin-bottom:4px;display:block;">Lote</label><input type="text" class="nova-lote" value="${U.esc(it.lote||'')}" placeholder="Ex.: 45821" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px; background:#fff;"></div>
+      <button class="btn btn-danger btn-sm btn-rm-item" data-idx="${i}" style="align-self:end; height:42px;">✕</button>
       ${analiseHtml}
     </div>`;
   },
@@ -285,7 +282,7 @@ const App = {
               <td>
                 ${e.status==='Emprestada' ? 
                   `<button class="btn btn-warning btn-sm" data-declarar-devol="${e.id}">Devolver Ficha</button>` : 
-                  '<span style="font-size:12px;color:var(--text);">Aguardando conferência do setor</span>'}
+                  '<span class="badge badge-outline">Aguardando conferência</span>'}
               </td>
             </tr>`; 
           }).join('') : `<tr><td colspan="5" class="table-empty">Você não possui nenhuma ficha emprestada no momento.</td></tr>`}
@@ -306,7 +303,7 @@ const App = {
   },
   screenMinhaConta(){
     const user = Auth.current();
-    return `<div class="card" style="max-width:520px;"><h3>Minha conta</h3><form id="conta-form" style="margin-top:14px;"><div class="field"><label>Nome</label><input type="text" id="conta-nome" value="${U.esc(user.nome)}" required></div><div class="field"><label>E-mail</label><input type="email" id="conta-email" value="${U.esc(user.email)}" required></div><div class="field"><label>Senha</label><input type="password" id="conta-senha" value="${U.esc(user.senha)}" required></div><div class="info-row"><span class="k">Setor</span><span class="v">${U.esc(user.setor)}</span></div><div class="info-row"><span class="k">Perfil</span><span class="v">${U.esc(user.perfil)}</span></div><div class="form-actions"><button type="submit" class="btn btn-primary">Salvar alterações</button></div></form></div>`;
+    return `<div class="card" style="max-width:520px;"><h3>Minha conta</h3><form id="conta-form" style="margin-top:24px;"><div class="field"><label>Nome</label><input type="text" id="conta-nome" value="${U.esc(user.nome)}" required></div><div class="field"><label>E-mail</label><input type="email" id="conta-email" value="${U.esc(user.email)}" required></div><div class="field"><label>Senha</label><input type="password" id="conta-senha" value="${U.esc(user.senha)}" required></div><div class="form-actions" style="margin-top:12px;justify-content:flex-start;"><button type="submit" class="btn btn-primary">Salvar alterações</button></div></form></div>`;
   },
   openModal(title, body, foot='', large=false){
     document.body.classList.add('modal-open');
@@ -332,7 +329,7 @@ const App = {
       <div class="receipt">
         <div class="receipt-head">
           <div><div class="brand">SIGEF<small>Sistema Integrado de Gestão de Fichas</small></div></div>
-          <div class="doc"><strong>COMPROVANTE DE RETIRADA</strong>Solicitação ${U.esc(sol?.numero||'—')}<br>Registro #${e.id}</div>
+          <div class="doc"><strong>COMPROVANTE DE RETIRADA</strong><span>Solicitação ${U.esc(sol?.numero||'—')}</span><span>Registro #${e.id}</span></div>
         </div>
         <div class="receipt-grid">
           <div class="f"><strong>Quem retirou</strong>${U.esc(e.nome_recebedor)}</div>
@@ -344,8 +341,8 @@ const App = {
           <thead><tr><th>Lote</th><th>Código do produto</th><th>Situação documental</th></tr></thead>
           <tbody>${linhas}</tbody>
         </table>
-        <p style="font-size:12px;margin-top:8px;"><strong>Quantidade de fichas retiradas:</strong> ${itensE.length}</p>
-        <p style="font-size:11px;margin-top:12px;color:var(--red);"><strong>Atenção:</strong> As fichas acima estão em regime de empréstimo e devem ser devolvidas ao setor responsável. O prazo de devolução deve ser acompanhado no painel "Minhas Fichas Emprestadas".</p>
+        <p style="font-size:13px;margin-top:16px;font-weight:600;">Quantidade de fichas retiradas: <span style="color:var(--primary);">${itensE.length}</span></p>
+        <p style="font-size:12px;margin-top:16px;color:var(--danger);background:var(--danger-bg);padding:12px;border-radius:6px;"><strong>Atenção:</strong> As fichas acima estão em regime de empréstimo e devem ser devolvidas ao setor responsável. O prazo de devolução deve ser acompanhado no painel "Minhas Fichas Emprestadas".</p>
         <div class="sign-area">
           <div class="sign-line">Assinatura de quem retirou</div>
           <div class="sign-line">Responsável pela liberação</div>
@@ -375,8 +372,8 @@ const App = {
     const rows = disponiveis.map(it=>{ 
       const f = U.findFicha(it.ficha_id); 
       return `<tr>
-        <td><input type="checkbox" data-ficha-id="${it.ficha_id}" class="entrega-check"></td>
-        <td>${U.esc(f.lote)}</td>
+        <td><input type="checkbox" data-ficha-id="${it.ficha_id}" class="entrega-check" style="width:18px;height:18px;cursor:pointer;"></td>
+        <td><strong>${U.esc(f.lote)}</strong></td>
         <td>${U.esc(f.codigo_produto)}</td>
       </tr>`; 
     }).join('');
@@ -384,14 +381,14 @@ const App = {
     const hoje = new Date().toISOString().slice(0,10);
     
     const body = `
-      <p style="font-size:13px;margin-bottom:10px;">Selecione as fichas que estão sendo <strong>retiradas (emprestadas)</strong>. Elas aparecerão na tela "Minhas Fichas Emprestadas" até que sejam devolvidas.</p>
+      <p style="font-size:14px;margin-bottom:16px;color:var(--text-muted);">Selecione as fichas que estão sendo <strong>retiradas (emprestadas)</strong>. Elas aparecerão na tela "Minhas Fichas Emprestadas" até que sejam devolvidas.</p>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Selecionar</th><th>Lote</th><th>Código</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
-      <div class="form-grid" style="margin-top:16px;">
+      <div class="form-grid" style="margin-top:24px;">
         <div class="field"><label>Quem está retirando</label><input type="text" id="entrega-recebedor" value="${U.esc(sol.solicitante_nome)}" required></div>
         <div class="field"><label>Setor do recebedor</label><input type="text" id="entrega-setor" value="${U.esc(sol.setor)}" required></div>
         <div class="field"><label>Data da Retirada (Manual)</label><input type="date" id="entrega-data" value="${hoje}" required></div>
@@ -454,8 +451,8 @@ const App = {
   },
   abrirConfirmarDevolucao(empId){
     const e = Store.get('emprestimos').find(x=>x.id===empId); const f = U.findFicha(e.ficha_id);
-    const body = `<p style="font-size:13px;">Confirme o recebimento físico da ficha <strong>Lote ${U.esc(f.lote)} — ${U.esc(f.codigo_produto)}</strong>.</p><div class="field" style="margin-top:14px;"><label>Resultado da conferência</label><select id="conf-resultado"><option value="Recebida e conferida">Recebida e arquivada</option><option value="Devolvida para correção">Recebida, mas encaminhada para correção</option></select></div>`;
-    this.openModal('Conferência física', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" id="btn-confirmar-devol">Confirmar</button>`);
+    const body = `<p style="font-size:14px;">Confirme o recebimento físico da ficha <strong>Lote ${U.esc(f.lote)} — ${U.esc(f.codigo_produto)}</strong>.</p><div class="field" style="margin-top:20px;"><label>Resultado da conferência</label><select id="conf-resultado"><option value="Recebida e conferida">Recebida e arquivada</option><option value="Devolvida para correção">Recebida, mas encaminhada para correção</option></select></div>`;
+    this.openModal('Conferência física', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-success" id="btn-confirmar-devol">Confirmar Recebimento</button>`);
     document.getElementById('btn-confirmar-devol').addEventListener('click', ()=>{
       const resultado = document.getElementById('conf-resultado').value; const user = Auth.current();
       Store.update('emprestimos', empId, { status: resultado, data_confirmacao_fisica: U.todayISO() });
@@ -467,21 +464,12 @@ const App = {
     const m = Store.get('emails').find(x=>x.id===emailId); const lotesFichas = [];
     m.lotes_identificados.forEach(l=>{ const fichasDoLote = Store.get('fichas').filter(f=>f.lote===l); fichasDoLote.forEach(f=>lotesFichas.push({ lote:l, ficha:f })); });
     const rows = lotesFichas.map(({lote,ficha})=>{ const ana = this.analisarFicha(ficha); return `<tr><td>${U.esc(lote)}</td><td>${U.esc(ficha.codigo_produto)}</td><td>${U.badgeSit(ficha.situacao_planilha)}</td><td>${ana.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':ana.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':'<span class="badge badge-yellow">Indisponível</span>'} ${U.esc(ana.msg)}</td></tr>`; }).join('');
-    const body = `<div class="info-list"><div class="info-row"><span class="k">De</span><span class="v">${U.esc(m.remetente_nome)} &lt;${U.esc(m.remetente)}&gt;</span></div><div class="info-row"><span class="k">Data</span><span class="v">${U.fmtDateTime(m.data)}</span></div></div><div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:8px;font-size:13px;white-space:pre-wrap;">${U.esc(m.corpo)}</div><h4 style="margin-top:16px;">Fichas identificadas</h4><div class="table-wrap" style="margin-top:8px;"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th><th>Análise</th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="table-empty">Nenhuma ficha encontrada.</td></tr>'}</tbody></table></div>${m.status_processamento==='Pendente'?`<div style="margin-top:14px;"><h4>Rascunho de resposta (simulado)</h4><textarea id="email-resposta" rows="4" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;margin-top:6px;font-size:12px;">Olá ${U.esc(m.remetente_nome)}, recebemos sua solicitação e estamos analisando os lotes informados. Retornaremos em breve.</textarea></div>`:''}`;
-    this.openModal('Detalhe do e-mail', body, m.status_processamento==='Pendente' ? `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-criar-sol-email">Criar solicitação</button>` : `<button class="btn btn-secondary" data-close>Fechar</button>`, true);
-    if(m.status_processamento==='Pendente'){
-      document.getElementById('btn-criar-sol-email').addEventListener('click', ()=>{
-        const user = Store.get('usuarios').find(u=>u.email === m.remetente); if(!user){ U.toast('Remetente não cadastrado como usuário.','error'); return; }
-        const novaSol = Store.add('solicitacoes', { numero: 'SOL-2025-' + String(Store.get('solicitacoes').length + 1).padStart(4,'0'), solicitante_id: user.id, solicitante_nome: user.nome, setor: user.setor, data_criacao: U.todayISO(), situacao: 'Recebida', observacoes: 'Criada via e-mail simulado.' });
-        m.lotes_identificados.forEach(l=>{ Store.get('fichas').filter(f=>f.lote===l).forEach(f=>{ Store.add('itens_solicitacao', { solicitacao_id: novaSol.id, ficha_id: f.id, situacao_item: 'Disponível' }); }); });
-        Store.update('emails', m.id, { status_processamento: 'Processado', solicitacao_id: novaSol.id });
-        this.closeModal(); U.toast('Solicitação criada a partir do e-mail!','success'); this.navigate('solicitacoes');
-      });
-    }
+    const body = `<div class="info-list"><div class="info-row"><span class="k">De</span><span class="v">${U.esc(m.remetente_nome)} &lt;${U.esc(m.remetente)}&gt;</span></div><div class="info-row"><span class="k">Data</span><span class="v">${U.fmtDateTime(m.data)}</span></div></div><div style="margin-top:16px;padding:16px;background:var(--bg-body);border-radius:8px;font-size:14px;white-space:pre-wrap;">${U.esc(m.corpo)}</div><h4 style="margin-top:24px;margin-bottom:12px;">Fichas identificadas</h4><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th><th>Análise</th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="table-empty">Nenhuma ficha encontrada.</td></tr>'}</tbody></table></div>`;
+    this.openModal('Detalhe do e-mail', body, `<button class="btn btn-secondary" data-close>Fechar</button>`, true);
   },
   abrirDeclararDevolucao(empId){
     const e = Store.get('emprestimos').find(x=>x.id===empId); const f = U.findFicha(e.ficha_id);
-    const body = `<p style="font-size:13px;">Você está informando a devolução da ficha <strong>Lote ${U.esc(f.lote)} — ${U.esc(f.codigo_produto)}</strong>.</p><p style="font-size:12px;color:var(--text);margin-top:8px;">O administrador do setor precisará confirmar o recebimento físico antes de encerrar o empréstimo.</p>`;
+    const body = `<p style="font-size:14px;">Você está informando a devolução da ficha <strong>Lote ${U.esc(f.lote)} — ${U.esc(f.codigo_produto)}</strong>.</p><p style="font-size:13px;color:var(--text-muted);margin-top:12px;">O administrador do setor precisará confirmar o recebimento físico antes de encerrar o empréstimo.</p>`;
     this.openModal('Informar devolução', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-warning" id="btn-confirmar-declaracao">Confirmar devolução</button>`);
     document.getElementById('btn-confirmar-declaracao').addEventListener('click', ()=>{
       Store.update('emprestimos', empId, { status: 'Devolução informada', data_devolucao_informada: U.todayISO() });
@@ -509,30 +497,25 @@ const App = {
       let sols = Store.get('solicitacoes');
       if(de) sols = sols.filter(s=>s.data_criacao.slice(0,10) >= de);
       if(ate) sols = sols.filter(s=>s.data_criacao.slice(0,10) <= ate);
-      if(tipo === 'setor'){ const agrupado = {}; sols.forEach(s=>{ agrupado[s.setor] = (agrupado[s.setor]||0) + 1; }); html = `<table><thead><tr><th>Setor</th><th>Total de Solicitações</th></tr></thead><tbody>${Object.entries(agrupado).map(([setor, qtd])=>`<tr><td>${U.esc(setor)}</td><td>${qtd}</td></tr>`).join('')}</tbody></table>`; }
-      else { html = `<table><thead><tr><th>Número</th><th>Solicitante</th><th>Setor</th><th>Data</th><th>Situação</th></tr></thead><tbody>${sols.map(s=>`<tr><td>${U.esc(s.numero)}</td><td>${U.esc(s.solicitante_nome)}</td><td>${U.esc(s.setor)}</td><td>${U.fmtDate(s.data_criacao)}</td><td>${U.badgeSol(s.situacao)}</td></tr>`).join('')}</tbody></table>`; }
-    } else if(tipo === 'entregues' || tipo === 'parciais'){
+      if(tipo === 'setor'){ const agrupado = {}; sols.forEach(s=>{ agrupado[s.setor] = (agrupado[s.setor]||0) + 1; }); html = `<div class="table-wrap"><table><thead><tr><th>Setor</th><th>Total de Solicitações</th></tr></thead><tbody>${Object.entries(agrupado).map(([setor, qtd])=>`<tr><td>${U.esc(setor)}</td><td>${qtd}</td></tr>`).join('')}</tbody></table></div>`; }
+      else { html = `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Solicitante</th><th>Setor</th><th>Data</th><th>Situação</th></tr></thead><tbody>${sols.map(s=>`<tr><td>${U.esc(s.numero)}</td><td>${U.esc(s.solicitante_nome)}</td><td>${U.esc(s.setor)}</td><td>${U.fmtDate(s.data_criacao)}</td><td>${U.badgeSol(s.situacao)}</td></tr>`).join('')}</tbody></table></div>`; }
+    } else if(tipo === 'entregues'){
       const entregas = Store.get('entregas'); const rows = [];
-      entregas.forEach(e=>{ const itens = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); if(tipo === 'parciais' && itens.length === 0) return; const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id); rows.push(`<tr><td>${e.id}</td><td>${U.esc(sol?.numero||'—')}</td><td>${U.esc(e.nome_recebedor)}</td><td>${itens.length} fichas</td><td>${U.fmtDate(e.data_entrega)}</td></tr>`); });
-      html = `<table><thead><tr><th>ID</th><th>Solicitação</th><th>Recebedor</th><th>Qtd</th><th>Data da Retirada</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+      entregas.forEach(e=>{ const itens = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id); rows.push(`<tr><td>${e.id}</td><td>${U.esc(sol?.numero||'—')}</td><td>${U.esc(e.nome_recebedor)}</td><td>${itens.length} fichas</td><td>${U.fmtDate(e.data_entrega)}</td></tr>`); });
+      html = `<div class="table-wrap"><table><thead><tr><th>ID</th><th>Solicitação</th><th>Recebedor</th><th>Qtd</th><th>Data da Retirada</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
     } else if(tipo === 'emprestadas'){
       const emps = Store.get('emprestimos').filter(e=>e.status==='Emprestada'||e.status==='Devolução informada');
-      html = `<table><thead><tr><th>Lote</th><th>Código</th><th>Recebedor</th><th>Setor</th><th>Data Emp.</th><th>Status</th></tr></thead><tbody>${emps.map(e=>{const f = U.findFicha(e.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(e.recebedor_nome)}</td><td>${U.esc(e.recebedor_setor)}</td><td>${U.fmtDate(e.data_emprestimo)}</td><td>${U.badgeStatusEmp(e.status)}</td></tr>`;}).join('')}</tbody></table>`;
+      html = `<div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Recebedor</th><th>Setor</th><th>Data Emp.</th><th>Status</th></tr></thead><tbody>${emps.map(e=>{const f = U.findFicha(e.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(e.recebedor_nome)}</td><td>${U.esc(e.recebedor_setor)}</td><td>${U.fmtDate(e.data_emprestimo)}</td><td>${U.badgeStatusEmp(e.status)}</td></tr>`;}).join('')}</tbody></table></div>`;
     } else if(tipo === 'devol'){
       const pend = Store.get('emprestimos').filter(e=>e.status==='Devolução informada');
-      html = `<table><thead><tr><th>Lote</th><th>Código</th><th>Recebedor</th><th>Data Dev.</th></tr></thead><tbody>${pend.map(e=>{const f = U.findFicha(e.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(e.recebedor_nome)}</td><td>${U.fmtDate(e.data_devolucao_informada)}</td></tr>`;}).join('')}</tbody></table>`;
-    } else if(tipo === 'correcao' || tipo === 'indisp'){
-      let fichas = Store.get('fichas');
-      if(tipo === 'correcao') fichas = fichas.filter(f=>f.situacao_planilha==='Em correção');
-      else fichas = fichas.filter(f=>f.situacao_planilha!=='Arquivada');
-      html = `<table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th><th>Aba</th></tr></thead><tbody>${fichas.map(f=>`<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.badgeSit(f.situacao_planilha)}</td><td>${U.esc(f.aba_origem)}</td></tr>`).join('')}</tbody></table>`;
+      html = `<div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Recebedor</th><th>Data Dev.</th></tr></thead><tbody>${pend.map(e=>{const f = U.findFicha(e.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(e.recebedor_nome)}</td><td>${U.fmtDate(e.data_devolucao_informada)}</td></tr>`;}).join('')}</tbody></table></div>`;
     } else if(tipo === 'ficha'){
       if(!fichaBusca){ U.toast('Informe o lote para buscar o histórico.','warning'); return; }
       const fichas = Store.get('fichas').filter(f=>f.lote.includes(fichaBusca));
       if(!fichas.length){ U.toast('Nenhuma ficha encontrada.','error'); return; }
-      html = fichas.map(f=>{ const hist = Store.get('historico').filter(h=>h.ficha_id===f.id).sort((a,b)=>b.data_hora.localeCompare(a.data_hora)); return `<h4 style="margin:14px 0 8px;">Lote ${U.esc(f.lote)} — ${U.esc(f.codigo_produto)} (${U.esc(f.situacao_planilha)})</h4><div class="timeline" style="padding-left:20px;">${hist.map(h=>`<div class="tl-item"><div class="tl-title">${U.esc(h.tipo_movimentacao)}</div><div class="tl-desc">${U.esc(h.descricao)}</div><div class="tl-meta">${U.esc(h.usuario_responsavel)} · ${U.fmtDateTime(h.data_hora)}</div></div>`).join('')}</div>`; }).join('');
+      html = fichas.map(f=>{ const hist = Store.get('historico').filter(h=>h.ficha_id===f.id).sort((a,b)=>b.data_hora.localeCompare(a.data_hora)); return `<h4 style="margin:20px 0 12px;">Lote ${U.esc(f.lote)} — ${U.esc(f.codigo_produto)} (${U.esc(f.situacao_planilha)})</h4><div class="timeline" style="padding-left:24px;">${hist.map(h=>`<div class="tl-item"><div class="tl-title">${U.esc(h.tipo_movimentacao)}</div><div class="tl-desc">${U.esc(h.descricao)}</div><div class="tl-meta">${U.esc(h.usuario_responsavel)} · ${U.fmtDateTime(h.data_hora)}</div></div>`).join('')}</div>`; }).join('');
     }
-    res.innerHTML = `<h3 style="margin-bottom:12px;">Resultado</h3>${html || '<div class="table-empty">Sem dados para o filtro.</div>'}`;
+    res.innerHTML = `<h3 style="margin-bottom:16px;">Resultado</h3>${html || '<div class="table-empty">Sem dados para o filtro.</div>'}`;
   },
   events: {
     dashboard: function(){ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); },
@@ -540,7 +523,7 @@ const App = {
     'solicitacao-detalhe': function(){ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); document.querySelectorAll('[data-nova-entrega]').forEach(b=>b.addEventListener('click', ()=>this.abrirNovaEntrega(Number(b.dataset.novaEntrega)))); document.querySelectorAll('[data-imprimir]').forEach(b=>b.addEventListener('click', ()=>this.abrirComprovante(Number(b.dataset.imprimir)))); },
     fichas: function(){ this.renderFichasTable(); ['f-fichas-busca','f-fichas-sit','f-fichas-aba'].forEach(id=>{ document.getElementById(id)?.addEventListener('input', ()=>this.renderFichasTable()); }); },
     entregas: function(){ document.querySelectorAll('[data-imprimir]').forEach(b=>b.addEventListener('click', ()=>this.abrirComprovante(Number(b.dataset.imprimir)))); },
-    emprestimos: function(){ document.querySelectorAll('[data-info-devol]').forEach(b=>b.addEventListener('click', ()=>{ this.abrirDeclararDevolucao(Number(b.dataset.infoDevol)); })); document.querySelectorAll('[data-confirmar-devol]').forEach(b=>b.addEventListener('click', ()=>{ this.abrirConfirmarDevolucao(Number(b.dataset.confirmarDevol)); })); },
+    emprestimos: function(){ document.querySelectorAll('[data-confirmar-devol]').forEach(b=>b.addEventListener('click', ()=>{ this.abrirConfirmarDevolucao(Number(b.dataset.confirmarDevol)); })); },
     devolucoes: function(){ document.querySelectorAll('[data-confirmar-devol]').forEach(b=>b.addEventListener('click', ()=>{ this.abrirConfirmarDevolucao(Number(b.dataset.confirmarDevol)); })); },
     historico: function(){ this.renderHistorico(); document.getElementById('f-hist-busca')?.addEventListener('input', ()=>this.renderHistorico()); document.getElementById('btn-hist-limpar')?.addEventListener('click', ()=>{ document.getElementById('f-hist-busca').value = ''; this.renderHistorico(); }); },
     relatorios: function(){ document.getElementById('rel-gerar')?.addEventListener('click', ()=>this.gerarRelatorio()); document.getElementById('rel-print')?.addEventListener('click', ()=>window.print()); },
@@ -562,7 +545,7 @@ const App = {
           const analise = it.lote ? this.analisarFicha(ficha) : null;
           let analiseHtml = '';
           if(analise) {
-            analiseHtml = `<div class="analise-box" style="grid-column:1/-1;font-size:12px;margin-top:4px;">${analise.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':analise.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':analise.status==='indisponivel'?'<span class="badge badge-yellow">Indisponível</span>':'<span class="badge badge-gray">Não encontrada</span>'} — ${U.esc(analise.msg)}</div>`;
+            analiseHtml = `<div class="analise-box" style="grid-column:1/-1;font-size:13px;margin-top:8px;">${analise.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':analise.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':analise.status==='indisponivel'?'<span class="badge badge-yellow">Indisponível</span>':'<span class="badge badge-gray">Não encontrada</span>'} — ${U.esc(analise.msg)}</div>`;
           }
           let box = row.querySelector('.analise-box');
           if (box) { box.outerHTML = analiseHtml; } 
@@ -578,9 +561,7 @@ const App = {
         this.state.novaItems = []; U.toast('Solicitação enviada com sucesso!','success'); this.navigate('minhas-solicitacoes');
       });
     },
-    'minhas-solicitacoes': function(){ 
-      document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); 
-    },
+    'minhas-solicitacoes': function(){ document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); },
     'minhas-fichas-emprestadas': function(){ document.querySelectorAll('[data-declarar-devol]').forEach(b=>b.addEventListener('click', ()=>{ this.abrirDeclararDevolucao(Number(b.dataset.declararDevol)); })); },
     'minha-conta': function(){ document.getElementById('conta-form')?.addEventListener('submit', e=>{ e.preventDefault(); const user = Auth.current(); const novosDados = { nome: document.getElementById('conta-nome').value.trim(), email: document.getElementById('conta-email').value.trim(), senha: document.getElementById('conta-senha').value.trim() }; Store.update('usuarios', user.id, novosDados); sessionStorage.setItem('sigef_user', JSON.stringify({...user, ...novosDados})); U.toast('Dados atualizados!','success'); this.renderShell(); }); }
   }
