@@ -173,7 +173,8 @@ const App = {
     const totalEntregue = Store.get('itens_entrega').filter(ie=>entregas.some(e=>e.id===ie.entrega_id)).length;
     const total = itens.length, restantes = total - totalEntregue, pct = total ? Math.round(totalEntregue/total*100) : 0;
     const user = Auth.current();
-    return `<button class="btn btn-secondary btn-sm" data-nav="solicitacoes">← Voltar</button>
+    const backScreen = user.perfil === 'admin' ? 'solicitacoes' : 'minhas-solicitacoes';
+    return `<button class="btn btn-secondary btn-sm" data-nav="${backScreen}">← Voltar</button>
       <div class="card" style="margin-top:14px;"><div class="section-head"><h2>${U.esc(s.numero)}</h2><div>${U.badgeSol(s.situacao)}</div></div><div class="info-list"><div class="info-row"><span class="k">Solicitante</span><span class="v">${U.esc(s.solicitante_nome)}</span></div><div class="info-row"><span class="k">Setor</span><span class="v">${U.esc(s.setor)}</span></div><div class="info-row"><span class="k">Data do pedido</span><span class="v">${U.fmtDateTime(s.data_criacao)}</span></div><div class="info-row"><span class="k">Observações</span><span class="v">${U.esc(s.observacoes||'—')}</span></div><div class="info-row"><span class="k">Progresso</span><span class="v">${totalEntregue}/${total} (${pct}%) — restam ${restantes}</span></div></div></div>
       <div class="section card"><h3 style="margin-bottom:10px;">Itens</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação documental</th><th>Situação do item</th><th>Entregue</th></tr></thead><tbody>${itens.map(it=>{ const f = U.findFicha(it.ficha_id); const lote = f ? f.lote : (it.lote_snapshot||'—'), codigo = f ? f.codigo_produto : (it.codigo_snapshot||'—'); const sitPlan = f ? f.situacao_planilha : 'Não encontrada'; const entregue = Store.get('itens_entrega').some(ie=>ie.ficha_id===it.ficha_id && entregas.some(e=>e.id===ie.entrega_id)); return `<tr><td>${U.esc(lote)}</td><td>${U.esc(codigo)}</td><td>${U.badgeSit(sitPlan)}</td><td>${U.badgeSit(it.situacao_item)}</td><td>${entregue?'<span class="badge badge-green">Sim</span>':'<span class="badge badge-gray">Não</span>'}</td></tr>`; }).join('')}</tbody></table></div></div>
       ${user.perfil==='admin' ? `<div class="section card"><div class="section-head"><h3>Entregas registradas</h3><button class="btn btn-primary btn-sm" data-nova-entrega="${s.id}" ${restantes<=0?'disabled':''}>+ Nova entrega</button></div>${entregas.length ? entregas.map(e=>{ const itensE = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); return `<div class="analysis-item"><div class="info"><strong>Entrega #${e.id}</strong> — ${U.fmtDateTime(e.timestamp_registro)}<br><span class="reason">Recebido por ${U.esc(e.nome_recebedor)} (${U.esc(e.setor_recebedor)}) — ${itensE.length} ficha(s)</span></div><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></div>`; }).join('') : '<div class="table-empty">Nenhuma entrega.</div>'}</div>` : ''}`;
@@ -246,7 +247,16 @@ const App = {
   renderNovaItemRow(it, i){
     const ficha = it.lote && it.codigo ? this.buscaFicha(it.lote, it.codigo) : null;
     const analise = (it.lote && it.codigo) ? this.analisarFicha(ficha) : null;
-    return `<div class="item-row" data-idx="${i}"><div><label style="font-size:11px;color:var(--text);">Lote</label><input type="text" class="nova-lote" value="${U.esc(it.lote||'')}" placeholder="Ex.: 45821" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;"></div><div><label style="font-size:11px;color:var(--text);">Código</label><input type="text" class="nova-codigo" value="${U.esc(it.codigo||'')}" placeholder="Ex.: PROD-100" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;"></div><button class="btn btn-danger btn-sm btn-rm-item" data-idx="${i}">✕</button>${analise ? `<div style="grid-column:1/-1;font-size:12px;margin-top:4px;">${analise.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':analise.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':analise.status==='indisponivel'?'<span class="badge badge-yellow">Indisponível</span>':'<span class="badge badge-gray">Não encontrada</span>'} — ${U.esc(analise.msg)}</div>` : ''}</div>`;
+    let analiseHtml = '';
+    if(analise) {
+      analiseHtml = `<div class="analise-box" style="grid-column:1/-1;font-size:12px;margin-top:4px;">${analise.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':analise.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':analise.status==='indisponivel'?'<span class="badge badge-yellow">Indisponível</span>':'<span class="badge badge-gray">Não encontrada</span>'} — ${U.esc(analise.msg)}</div>`;
+    }
+    return `<div class="item-row" data-idx="${i}">
+      <div><label style="font-size:11px;color:var(--text);">Lote</label><input type="text" class="nova-lote" value="${U.esc(it.lote||'')}" placeholder="Ex.: 45821" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;"></div>
+      <div><label style="font-size:11px;color:var(--text);">Código</label><input type="text" class="nova-codigo" value="${U.esc(it.codigo||'')}" placeholder="Ex.: PROD-100" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;"></div>
+      <button class="btn btn-danger btn-sm btn-rm-item" data-idx="${i}">✕</button>
+      ${analiseHtml}
+    </div>`;
   },
   screenMinhasSolicitacoes(){
     const user = Auth.current(); const sols = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id).slice().sort((a,b)=>b.data_criacao.localeCompare(a.data_criacao));
@@ -430,7 +440,16 @@ const App = {
         if(e.target.classList.contains('nova-lote') || e.target.classList.contains('nova-codigo')){
           const row = e.target.closest('.item-row'); const idx = Number(row.dataset.idx);
           if(e.target.classList.contains('nova-lote')) this.state.novaItems[idx].lote = e.target.value.trim(); else this.state.novaItems[idx].codigo = e.target.value.trim();
-          const it = this.state.novaItems[idx]; row.outerHTML = this.renderNovaItemRow(it, idx);
+          const it = this.state.novaItems[idx];
+          const ficha = it.lote && it.codigo ? this.buscaFicha(it.lote, it.codigo) : null;
+          const analise = (it.lote && it.codigo) ? this.analisarFicha(ficha) : null;
+          let analiseHtml = '';
+          if(analise) {
+            analiseHtml = `<div class="analise-box" style="grid-column:1/-1;font-size:12px;margin-top:4px;">${analise.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':analise.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':analise.status==='indisponivel'?'<span class="badge badge-yellow">Indisponível</span>':'<span class="badge badge-gray">Não encontrada</span>'} — ${U.esc(analise.msg)}</div>`;
+          }
+          let box = row.querySelector('.analise-box');
+          if (box) { box.outerHTML = analiseHtml; } 
+          else if (analiseHtml) { row.insertAdjacentHTML('beforeend', analiseHtml); }
         }
       });
       document.getElementById('btn-enviar-sol')?.addEventListener('click', ()=>{
@@ -441,6 +460,9 @@ const App = {
         itensValidos.forEach(it=>{ const f = this.buscaFicha(it.lote, it.codigo); Store.add('itens_solicitacao', { solicitacao_id: nova.id, ficha_id: f ? f.id : null, situacao_item: f ? this.analisarFicha(f).status : 'Não encontrada', lote_snapshot: f ? null : it.lote, codigo_snapshot: f ? null : it.codigo }); });
         this.state.novaItems = []; U.toast('Solicitação enviada com sucesso!','success'); this.navigate('minhas-solicitacoes');
       });
+    },
+    'minhas-solicitacoes': function(){ 
+      document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); 
     },
     'minhas-fichas-emprestadas': function(){ document.querySelectorAll('[data-declarar-devol]').forEach(b=>b.addEventListener('click', ()=>{ this.abrirDeclararDevolucao(Number(b.dataset.declararDevol)); })); },
     'minha-conta': function(){ document.getElementById('conta-form')?.addEventListener('submit', e=>{ e.preventDefault(); const user = Auth.current(); const novosDados = { nome: document.getElementById('conta-nome').value.trim(), email: document.getElementById('conta-email').value.trim(), senha: document.getElementById('conta-senha').value.trim() }; Store.update('usuarios', user.id, novosDados); sessionStorage.setItem('sigef_user', JSON.stringify({...user, ...novosDados})); U.toast('Dados atualizados!','success'); this.renderShell(); }); }
