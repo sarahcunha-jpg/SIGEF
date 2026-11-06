@@ -87,7 +87,7 @@ const App = {
   },
   renderNav(){
     const user = Auth.current(); const admin = user.perfil==='admin';
-    const items = admin ? [['dashboard','Painel','📊'],['solicitacoes','Solicitações','📥'],['fichas','Consulta de Fichas','🗂️'],['entregas','Entregas','📦'],['emprestimos','Empréstimos','🔄'],['devolucoes','Devoluções','↩️'],['historico','Histórico','🕓'],['relatorios','Relatórios','📈'],['planilha','Planilha (demo)','📑'],['emails','E-mails (demo)','✉️'],['usuarios','Usuários','👥'],['configuracoes','Configurações','⚙️']] : [['dashboard','Meu Painel','📊'],['nova-solicitacao','Nova Solicitação','➕'],['minhas-solicitacoes','Minhas Solicitações','📥'],['minhas-fichas-emprestadas','Minhas Fichas Emprestadas','🔄'],['minhas-devolucoes','Minhas Devoluções','↩️'],['meu-historico','Meu Histórico','🕓'],['minha-conta','Minha Conta','👤']];
+    const items = admin ? [['dashboard','Painel','📊'],['solicitacoes','Solicitações','📥'],['fichas','Consulta de Fichas','🗂️'],['entregas','Entregas/Retiradas','📦'],['emprestimos','Empréstimos','🔄'],['devolucoes','Devoluções','↩️'],['historico','Histórico','🕓'],['relatorios','Relatórios','📈'],['planilha','Planilha (demo)','📑'],['emails','E-mails (demo)','✉️'],['usuarios','Usuários','👥'],['configuracoes','Configurações','⚙️']] : [['dashboard','Meu Painel','📊'],['nova-solicitacao','Nova Solicitação','➕'],['minhas-solicitacoes','Minhas Solicitações','📥'],['minhas-fichas-emprestadas','Minhas Fichas Emprestadas','🔄'],['minhas-devolucoes','Minhas Devoluções','↩️'],['meu-historico','Meu Histórico','🕓'],['minha-conta','Minha Conta','👤']];
     const nav = document.getElementById('nav');
     nav.innerHTML = items.map(([key,label,ico]) => `<div class="nav-item ${this.state.screen===key?'active':''}" data-screen="${key}"><span class="ico">${ico}</span><span>${U.esc(label)}</span></div>`).join('');
     nav.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', () => { this.state.sidebarOpen=false; this.navigate(el.dataset.screen); }));
@@ -99,7 +99,7 @@ const App = {
   },
   renderScreen(){
     const user = Auth.current(); if(!user) return;
-    const titles = {dashboard: user.perfil==='admin'?'Painel Administrativo':'Meu Painel',solicitacoes:'Solicitações',fichas:'Consulta de Fichas',entregas:'Entregas',emprestimos:'Empréstimos',devolucoes:'Devoluções',historico:'Histórico',relatorios:'Relatórios',planilha:'Planilha (demo)',emails:'E-mails (demo)',usuarios:'Usuários',configuracoes:'Configurações','nova-solicitacao':'Nova Solicitação','minhas-solicitacoes':'Minhas Solicitações','minhas-fichas-emprestadas':'Minhas Fichas Emprestadas','minhas-devolucoes':'Minhas Devoluções','meu-historico':'Meu Histórico','minha-conta':'Minha Conta','solicitacao-detalhe':'Detalhe da Solicitação'};
+    const titles = {dashboard: user.perfil==='admin'?'Painel Administrativo':'Meu Painel',solicitacoes:'Solicitações',fichas:'Consulta de Fichas',entregas:'Histórico de Retiradas',emprestimos:'Empréstimos',devolucoes:'Devoluções',historico:'Histórico',relatorios:'Relatórios',planilha:'Planilha (demo)',emails:'E-mails (demo)',usuarios:'Usuários',configuracoes:'Configurações','nova-solicitacao':'Nova Solicitação','minhas-solicitacoes':'Minhas Solicitações','minhas-fichas-emprestadas':'Minhas Fichas Emprestadas','minhas-devolucoes':'Minhas Devoluções','meu-historico':'Meu Histórico','minha-conta':'Minha Conta','solicitacao-detalhe':'Detalhe da Solicitação'};
     document.getElementById('page-title').textContent = titles[this.state.screen] || 'SIGEF';
     const el = document.getElementById('content');
     try { el.innerHTML = this.screenHTML(this.state.screen, this.state.params); } catch(e){ el.innerHTML = `<div class="card">Erro: ${U.esc(e.message)}</div>`; }
@@ -141,7 +141,7 @@ const App = {
     const maxV = Math.max(1, ...vals);
     return `
       <div class="grid grid-4">${this.metricCard('Solicitações recebidas', sols.length)}${this.metricCard('Aguardando atendimento', sols.filter(s=>s.situacao==='Recebida'||s.situacao==='Em análise').length,'blue')}${this.metricCard('Parcialmente atendidas', sols.filter(s=>s.situacao==='Parcialmente atendida').length,'yellow')}${this.metricCard('Concluídas', sols.filter(s=>s.situacao==='Concluída').length,'green')}</div>
-      <div class="grid grid-4" style="margin-top:16px;">${this.metricCard('Fichas entregues', totalEntregue,'green')}${this.metricCard('Fichas emprestadas', emprestadas,'red')}${this.metricCard('Devoluções p/ conferir', devolPend.length,'yellow')}${this.metricCard('Fichas em correção', emCorrecao,'yellow')}</div>
+      <div class="grid grid-4" style="margin-top:16px;">${this.metricCard('Fichas retiradas/entregues', totalEntregue,'green')}${this.metricCard('Fichas emprestadas', emprestadas,'red')}${this.metricCard('Devoluções p/ conferir', devolPend.length,'yellow')}${this.metricCard('Fichas em correção', emCorrecao,'yellow')}</div>
       <div class="section grid grid-2">
         <div class="card"><h3 style="margin-bottom:14px;">Solicitações nos últimos 7 dias</h3><div class="chart-bars">${labels.map((l,i)=>`<div class="bar-col"><div class="bar-value">${vals[i]}</div><div class="bar" style="height:${(vals[i]/maxV*100)||2}%"></div><div class="bar-label">${l}</div></div>`).join('')}</div></div>
         <div class="card"><h3 style="margin-bottom:14px;">Situação das fichas</h3>${this.hbar('Arquivadas', arquivadas, fichas.length,'var(--green)')}${this.hbar('Em correção', emCorrecao, fichas.length,'var(--yellow)')}${this.hbar('Pendente FO', pFO, fichas.length,'var(--yellow)')}${this.hbar('Pendente RA', pRA, fichas.length,'var(--yellow)')}${this.hbar('Em revisão', emRevisao, fichas.length,'var(--blue)')}${this.hbar('Emprestadas', emprestadas, fichas.length,'var(--red)')}</div>
@@ -183,7 +183,7 @@ const App = {
     return `<button class="btn btn-secondary btn-sm" data-nav="${backScreen}">← Voltar</button>
       <div class="card" style="margin-top:14px;"><div class="section-head"><h2>${U.esc(s.numero)}</h2><div>${U.badgeSol(s.situacao)}</div></div><div class="info-list"><div class="info-row"><span class="k">Solicitante</span><span class="v">${U.esc(s.solicitante_nome)}</span></div><div class="info-row"><span class="k">Setor</span><span class="v">${U.esc(s.setor)}</span></div><div class="info-row"><span class="k">Data do pedido</span><span class="v">${U.fmtDateTime(s.data_criacao)}</span></div><div class="info-row"><span class="k">Observações</span><span class="v">${U.esc(s.observacoes||'—')}</span></div><div class="info-row"><span class="k">Progresso</span><span class="v">${totalEntregue}/${total} (${pct}%) — restam ${restantes}</span></div></div></div>
       <div class="section card"><h3 style="margin-bottom:10px;">Itens</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação documental</th><th>Situação do item</th><th>Entregue</th></tr></thead><tbody>${itens.map(it=>{ const f = U.findFicha(it.ficha_id); const lote = f ? f.lote : (it.lote_snapshot||'—'), codigo = f ? f.codigo_produto : (it.codigo_snapshot||'—'); const sitPlan = f ? f.situacao_planilha : 'Não encontrada'; const entregue = Store.get('itens_entrega').some(ie=>ie.ficha_id===it.ficha_id && entregas.some(e=>e.id===ie.entrega_id)); return `<tr><td>${U.esc(lote)}</td><td>${U.esc(codigo)}</td><td>${U.badgeSit(sitPlan)}</td><td>${U.badgeSit(it.situacao_item)}</td><td>${entregue?'<span class="badge badge-green">Sim</span>':'<span class="badge badge-gray">Não</span>'}</td></tr>`; }).join('')}</tbody></table></div></div>
-      ${user.perfil==='admin' ? `<div class="section card"><div class="section-head"><h3>Entregas registradas</h3><button class="btn btn-primary btn-sm" data-nova-entrega="${s.id}" ${restantes<=0?'disabled':''}>+ Nova entrega</button></div>${entregas.length ? entregas.map(e=>{ const itensE = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); return `<div class="analysis-item"><div class="info"><strong>Entrega #${e.id}</strong> — ${U.fmtDateTime(e.timestamp_registro)}<br><span class="reason">Recebido por ${U.esc(e.nome_recebedor)} (${U.esc(e.setor_recebedor)}) — ${itensE.length} ficha(s)</span></div><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></div>`; }).join('') : '<div class="table-empty">Nenhuma entrega.</div>'}</div>` : ''}`;
+      ${user.perfil==='admin' ? `<div class="section card"><div class="section-head"><h3>Retiradas registradas</h3><button class="btn btn-primary btn-sm" data-nova-entrega="${s.id}" ${restantes<=0?'disabled':''}>+ Registrar Retirada</button></div>${entregas.length ? entregas.map(e=>{ const itensE = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); return `<div class="analysis-item"><div class="info"><strong>Retirada #${e.id}</strong> — Data: ${U.fmtDate(e.data_entrega)}<br><span class="reason">Retirado por ${U.esc(e.nome_recebedor)} (${U.esc(e.setor_recebedor)}) — ${itensE.length} ficha(s)</span></div><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></div>`; }).join('') : '<div class="table-empty">Nenhuma retirada.</div>'}</div>` : ''}`;
   },
   screenFichas(){
     return `<div class="filter-bar"><input type="text" id="f-fichas-busca" placeholder="Buscar por lote ou código..."><select id="f-fichas-sit"><option value="">Todas as situações</option><option>Arquivada</option><option>Em correção</option><option>Pendente de FO</option><option>Pendente de RA</option><option>Em revisão</option></select><select id="f-fichas-aba"><option value="">Todas as abas</option><option>Arquivadas</option><option>Em Correção</option></select></div>
@@ -201,7 +201,7 @@ const App = {
   },
   screenEntregas(){
     const entregas = Store.get('entregas').slice().sort((a,b)=>b.timestamp_registro.localeCompare(a.timestamp_registro));
-    return `<div class="table-wrap"><table><thead><tr><th>#</th><th>Solicitação</th><th>Recebedor</th><th>Setor</th><th>Responsável</th><th>Data</th><th>Fichas</th><th>Ação</th></tr></thead><tbody>${entregas.length ? entregas.map(e=>{ const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id); const qtd = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id).length; return `<tr><td>#${e.id}</td><td>${U.esc(sol?.numero||'—')}</td><td>${U.esc(e.nome_recebedor)}</td><td>${U.esc(e.setor_recebedor)}</td><td>${U.esc(e.responsavel_entrega)}</td><td>${U.fmtDateTime(e.timestamp_registro)}</td><td>${qtd}</td><td><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></td></tr>`; }).join('') : `<tr><td colspan="8" class="table-empty">Nenhuma entrega registrada.</td></tr>`}</tbody></table></div>`;
+    return `<div class="table-wrap"><table><thead><tr><th>#</th><th>Solicitação</th><th>Retirado por</th><th>Setor</th><th>Responsável</th><th>Data da Retirada</th><th>Fichas</th><th>Ação</th></tr></thead><tbody>${entregas.length ? entregas.map(e=>{ const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id); const qtd = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id).length; return `<tr><td>#${e.id}</td><td>${U.esc(sol?.numero||'—')}</td><td>${U.esc(e.nome_recebedor)}</td><td>${U.esc(e.setor_recebedor)}</td><td>${U.esc(e.responsavel_entrega)}</td><td>${U.fmtDate(e.data_entrega)}</td><td>${qtd}</td><td><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></td></tr>`; }).join('') : `<tr><td colspan="8" class="table-empty">Nenhuma retirada registrada.</td></tr>`}</tbody></table></div>`;
   },
   screenEmprestimos(){
     const emps = Store.get('emprestimos').slice().sort((a,b)=>b.data_emprestimo.localeCompare(a.data_emprestimo));
@@ -226,7 +226,7 @@ const App = {
     el.innerHTML = hist.map(h=>{ const f = U.findFicha(h.ficha_id); const lotLabel = f ? `Lote ${f.lote} · ${f.codigo_produto}` : '—'; return `<div class="tl-item"><div class="tl-title">${U.esc(h.tipo_movimentacao)} — ${U.esc(lotLabel)}</div><div class="tl-desc">${U.esc(h.descricao)}</div><div class="tl-meta">${U.esc(h.usuario_responsavel)} · ${U.fmtDateTime(h.data_hora)}</div></div>`; }).join('');
   },
   screenRelatorios(){
-    return `<div class="card no-print"><div class="section-head"><h3>Relatórios</h3><div class="actions"><select id="rel-tipo"><option value="sols">Solicitações por período</option><option value="setor">Solicitações por setor</option><option value="entregues">Fichas entregues</option><option value="parciais">Entregas parciais</option><option value="emprestadas">Fichas emprestadas</option><option value="devol">Devoluções pendentes</option><option value="correcao">Fichas em correção</option><option value="indisp">Fichas indisponíveis</option><option value="ficha">Histórico de uma ficha</option></select><input type="date" id="rel-de" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;"><input type="date" id="rel-ate" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;"><input type="text" id="rel-ficha" placeholder="Lote (p/ ficha)" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;width:140px;"><button class="btn btn-primary btn-sm" id="rel-gerar">Gerar</button><button class="btn btn-secondary btn-sm" id="rel-print">🖨️ Imprimir</button></div></div></div>
+    return `<div class="card no-print"><div class="section-head"><h3>Relatórios</h3><div class="actions"><select id="rel-tipo"><option value="sols">Solicitações por período</option><option value="setor">Solicitações por setor</option><option value="entregues">Fichas retiradas</option><option value="parciais">Retiradas parciais</option><option value="emprestadas">Fichas emprestadas</option><option value="devol">Devoluções pendentes</option><option value="correcao">Fichas em correção</option><option value="indisp">Fichas indisponíveis</option><option value="ficha">Histórico de uma ficha</option></select><input type="date" id="rel-de" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;"><input type="date" id="rel-ate" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;"><input type="text" id="rel-ficha" placeholder="Lote (p/ ficha)" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;width:140px;"><button class="btn btn-primary btn-sm" id="rel-gerar">Gerar</button><button class="btn btn-secondary btn-sm" id="rel-print">🖨️ Imprimir</button></div></div></div>
       <div class="section card" id="rel-resultado"><div class="table-empty">Selecione o filtro e clique em Gerar.</div></div>`;
   },
   screenPlanilha(){
@@ -268,8 +268,30 @@ const App = {
     return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Data</th><th>Itens</th><th>Situação</th><th>Ações</th></tr></thead><tbody>${sols.length ? sols.map(s=>{ const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===s.id).length; return `<tr><td><strong>${U.esc(s.numero)}</strong></td><td>${U.fmtDateTime(s.data_criacao)}</td><td>${itens}</td><td>${U.badgeSol(s.situacao)}</td><td><button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Detalhes</button></td></tr>`; }).join('') : `<tr><td colspan="5" class="table-empty">Nenhuma solicitação.</td></tr>`}</tbody></table></div>`;
   },
   screenMinhasEmprestadas(){
-    const user = Auth.current(); const emps = Store.get('emprestimos').filter(e=>e.recebedor_nome===user.nome && (e.status==='Emprestada'||e.status==='Devolução informada'));
-    return `<div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Empréstimo</th><th>Status</th><th>Ações</th></tr></thead><tbody>${emps.length ? emps.map(e=>{ const f = U.findFicha(e.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.fmtDateTime(e.data_emprestimo)}</td><td>${U.badgeStatusEmp(e.status)}</td><td>${e.status==='Emprestada' ? `<button class="btn btn-warning btn-sm" data-declarar-devol="${e.id}">Informar devolução</button>` : 'Aguardando conferência'}</td></tr>`; }).join('') : `<tr><td colspan="5" class="table-empty">Nenhuma ficha em sua posse.</td></tr>`}</tbody></table></div>`;
+    const user = Auth.current(); 
+    const emps = Store.get('emprestimos').filter(e=>e.recebedor_nome===user.nome && (e.status==='Emprestada'||e.status==='Devolução informada'));
+    
+    return `<div class="table-wrap">
+      <table>
+        <thead><tr><th>Lote</th><th>Código</th><th>Data da Retirada</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody>
+          ${emps.length ? emps.map(e=>{ 
+            const f = U.findFicha(e.ficha_id); 
+            return `<tr>
+              <td><strong>${U.esc(f.lote)}</strong></td>
+              <td>${U.esc(f.codigo_produto)}</td>
+              <td>${U.fmtDate(e.data_emprestimo)}</td>
+              <td>${U.badgeStatusEmp(e.status)}</td>
+              <td>
+                ${e.status==='Emprestada' ? 
+                  `<button class="btn btn-warning btn-sm" data-declarar-devol="${e.id}">Devolver Ficha</button>` : 
+                  '<span style="font-size:12px;color:var(--text);">Aguardando conferência do setor</span>'}
+              </td>
+            </tr>`; 
+          }).join('') : `<tr><td colspan="5" class="table-empty">Você não possui nenhuma ficha emprestada no momento.</td></tr>`}
+        </tbody>
+      </table>
+    </div>`;
   },
   screenMinhasDevolucoes(){
     const user = Auth.current(); const emps = Store.get('emprestimos').filter(e=>e.recebedor_nome===user.nome && e.data_devolucao_informada);
@@ -300,52 +322,135 @@ const App = {
     const e = Store.get('entregas').find(x=>x.id===entregaId); if(!e) return;
     const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id);
     const itensE = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id);
-    const linhas = itensE.map(ie=>{ const f = U.findFicha(ie.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(f.situacao_planilha)}</td></tr>`; }).join('');
-    const body = `<div class="receipt"><div class="receipt-head"><div><div class="brand">SIGEF<small>Sistema Integrado de Gestão de Fichas</small></div></div><div class="doc"><strong>COMPROVANTE DE ENTREGA</strong>Solicitação ${U.esc(sol?.numero||'—')}<br>Entrega #${e.id}</div></div>
-      <div class="receipt-grid">
-        <div class="f"><strong>Solicitante</strong>${U.esc(sol?.solicitante_nome||'—')}</div>
-        <div class="f"><strong>Setor do solicitante</strong>${U.esc(sol?.setor||'—')}</div>
-        <div class="f"><strong>Data da entrega</strong>${U.fmtDate(e.data_entrega)}</div>
-        <div class="f"><strong>Responsável pela entrega</strong>${U.esc(e.responsavel_entrega)}</div>
-      </div>
-      <table><thead><tr><th>Lote</th><th>Código do produto</th><th>Situação documental</th></tr></thead><tbody>${linhas}</tbody></table><p style="font-size:12px;margin-top:8px;"><strong>Quantidade de fichas desta entrega:</strong> ${itensE.length}</p><div class="sign-area"><div class="sign-line">Assinatura de quem recebeu</div><div class="sign-line">Responsável pela entrega</div></div></div>`;
-    this.openModal('Comprovante de entrega', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print">🖨️ Imprimir</button>`, true);
+    
+    const linhas = itensE.map(ie=>{ 
+      const f = U.findFicha(ie.ficha_id); 
+      return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(f.situacao_planilha)}</td></tr>`; 
+    }).join('');
+    
+    const body = `
+      <div class="receipt">
+        <div class="receipt-head">
+          <div><div class="brand">SIGEF<small>Sistema Integrado de Gestão de Fichas</small></div></div>
+          <div class="doc"><strong>COMPROVANTE DE RETIRADA</strong>Solicitação ${U.esc(sol?.numero||'—')}<br>Registro #${e.id}</div>
+        </div>
+        <div class="receipt-grid">
+          <div class="f"><strong>Quem retirou</strong>${U.esc(e.nome_recebedor)}</div>
+          <div class="f"><strong>Setor do recebedor</strong>${U.esc(e.setor_recebedor)}</div>
+          <div class="f"><strong>Data da Retirada</strong>${U.fmtDate(e.data_entrega)}</div>
+          <div class="f"><strong>Liberado por</strong>${U.esc(e.responsavel_entrega)}</div>
+        </div>
+        <table>
+          <thead><tr><th>Lote</th><th>Código do produto</th><th>Situação documental</th></tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+        <p style="font-size:12px;margin-top:8px;"><strong>Quantidade de fichas retiradas:</strong> ${itensE.length}</p>
+        <p style="font-size:11px;margin-top:12px;color:var(--red);"><strong>Atenção:</strong> As fichas acima estão em regime de empréstimo e devem ser devolvidas ao setor responsável. O prazo de devolução deve ser acompanhado no painel "Minhas Fichas Emprestadas".</p>
+        <div class="sign-area">
+          <div class="sign-line">Assinatura de quem retirou</div>
+          <div class="sign-line">Responsável pela liberação</div>
+        </div>
+      </div>`;
+      
+    this.openModal('Comprovante de Retirada', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print">🖨️ Imprimir Comprovante</button>`, true);
     document.getElementById('btn-print').addEventListener('click', ()=>window.print());
   },
   abrirNovaEntrega(solicitacaoId){
     const sol = Store.get('solicitacoes').find(s=>s.id===solicitacaoId);
     const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===solicitacaoId);
     const entregas = Store.get('entregas').filter(e=>e.solicitacao_id===solicitacaoId);
-    const jaEntregues = new Set(); Store.get('itens_entrega').filter(ie=>entregas.some(e=>e.id===ie.entrega_id)).forEach(ie=>jaEntregues.add(ie.ficha_id));
-    const disponiveis = itens.filter(it=>{ if(jaEntregues.has(it.ficha_id)) return false; const f = U.findFicha(it.ficha_id); if(!f || f.situacao_planilha !== 'Arquivada' || U.emprestimoAtivo(f.id)) return false; return true; });
-    if(!disponiveis.length){ U.toast('Nenhum item disponível para nova entrega.','warning'); return; }
-    const rows = disponiveis.map(it=>{ const f = U.findFicha(it.ficha_id); return `<tr><td><input type="checkbox" data-ficha-id="${it.ficha_id}" class="entrega-check"></td><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td><input type="checkbox" data-emp-id="${it.ficha_id}" class="emp-check"></td></tr>`; }).join('');
+    
+    const jaEntregues = new Set(); 
+    Store.get('itens_entrega').filter(ie=>entregas.some(e=>e.id===ie.entrega_id)).forEach(ie=>jaEntregues.add(ie.ficha_id));
+    
+    const disponiveis = itens.filter(it=>{ 
+      if(jaEntregues.has(it.ficha_id)) return false; 
+      const f = U.findFicha(it.ficha_id); 
+      if(!f || f.situacao_planilha !== 'Arquivada' || U.emprestimoAtivo(f.id)) return false; 
+      return true; 
+    });
+
+    if(!disponiveis.length){ U.toast('Nenhum item disponível para retirada.','warning'); return; }
+    
+    const rows = disponiveis.map(it=>{ 
+      const f = U.findFicha(it.ficha_id); 
+      return `<tr>
+        <td><input type="checkbox" data-ficha-id="${it.ficha_id}" class="entrega-check"></td>
+        <td>${U.esc(f.lote)}</td>
+        <td>${U.esc(f.codigo_produto)}</td>
+      </tr>`; 
+    }).join('');
+    
     const hoje = new Date().toISOString().slice(0,10);
-    const body = `<p style="font-size:13px;margin-bottom:10px;">Selecione os itens que serão entregues nesta etapa. Marque em "Empréstimo?" os que ficarão sob empréstimo.</p><div class="table-wrap"><table><thead><tr><th>Entregar</th><th>Lote</th><th>Código</th><th>Empréstimo?</th></tr></thead><tbody>${rows}</tbody></table></div><div class="form-grid" style="margin-top:16px;"><div class="field"><label>Recebido por</label><input type="text" id="entrega-recebedor" value="${U.esc(sol.solicitante_nome)}" required></div><div class="field"><label>Setor do recebedor</label><input type="text" id="entrega-setor" value="${U.esc(sol.setor)}" required></div><div class="field"><label>Data da entrega</label><input type="date" id="entrega-data" value="${hoje}" required></div></div>`;
-    this.openModal('Registrar entrega', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" id="btn-salvar-entrega">Confirmar entrega</button>`, true);
+    
+    const body = `
+      <p style="font-size:13px;margin-bottom:10px;">Selecione as fichas que estão sendo <strong>retiradas (emprestadas)</strong>. Elas aparecerão na tela "Minhas Fichas Emprestadas" até que sejam devolvidas.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Selecionar</th><th>Lote</th><th>Código</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="form-grid" style="margin-top:16px;">
+        <div class="field"><label>Quem está retirando</label><input type="text" id="entrega-recebedor" value="${U.esc(sol.solicitante_nome)}" required></div>
+        <div class="field"><label>Setor do recebedor</label><input type="text" id="entrega-setor" value="${U.esc(sol.setor)}" required></div>
+        <div class="field"><label>Data da Retirada (Manual)</label><input type="date" id="entrega-data" value="${hoje}" required></div>
+      </div>`;
+      
+    this.openModal('Registrar Retirada (Empréstimo)', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" id="btn-salvar-entrega">Confirmar Retirada</button>`, true);
+    
     document.getElementById('btn-salvar-entrega').addEventListener('click', ()=>this.salvarEntrega(solicitacaoId));
   },
   salvarEntrega(solicitacaoId){
     const sel = [...document.querySelectorAll('.entrega-check:checked')].map(c=>Number(c.dataset.fichaId));
-    if(!sel.length){ U.toast('Selecione pelo menos um item.','error'); return; }
-    const recebedor = document.getElementById('entrega-recebedor').value.trim(), setor = document.getElementById('entrega-setor').value.trim(), dataStr = document.getElementById('entrega-data').value;
+    if(!sel.length){ U.toast('Selecione pelo menos uma ficha para retirar.','error'); return; }
+    
+    const recebedor = document.getElementById('entrega-recebedor').value.trim();
+    const setor = document.getElementById('entrega-setor').value.trim();
+    const dataStr = document.getElementById('entrega-data').value; 
+    
     if(!recebedor || !setor || !dataStr){ U.toast('Preencha todos os campos.','error'); return; }
+    
     const user = Auth.current();
-    const entrega = Store.add('entregas', { solicitacao_id: solicitacaoId, nome_recebedor: recebedor, setor_recebedor: setor, responsavel_entrega: user.nome, data_entrega: new Date(dataStr+'T12:00:00').toISOString(), timestamp_registro: U.todayISO() });
+    
+    const entrega = Store.add('entregas', { 
+      solicitacao_id: solicitacaoId, 
+      nome_recebedor: recebedor, 
+      setor_recebedor: setor, 
+      responsavel_entrega: user.nome, 
+      data_entrega: new Date(dataStr+'T12:00:00').toISOString(), 
+      timestamp_registro: U.todayISO() 
+    });
+    
     sel.forEach(fichaId=>{
       Store.add('itens_entrega', { entrega_id: entrega.id, ficha_id: fichaId });
-      const item = Store.get('itens_solicitacao').find(i=>i.solicitacao_id===solicitacaoId && i.ficha_id===fichaId); if(item) Store.update('itens_solicitacao', item.id, { situacao_item: 'Entregue' });
-      const empCheck = document.querySelector(`.emp-check[data-emp-id="${fichaId}"]`);
-      if(empCheck && empCheck.checked && !U.emprestimoAtivo(fichaId)){
-        Store.add('emprestimos', { ficha_id: fichaId, recebedor_nome: recebedor, recebedor_setor: setor, responsavel: user.nome, data_emprestimo: U.todayISO(), status: 'Emprestada', data_devolucao_informada: null, data_confirmacao_fisica: null });
-        Store.add('historico', { ficha_id: fichaId, usuario_responsavel: user.nome, tipo_movimentacao: 'Empréstimo', descricao: `Emprestada para ${recebedor} (${setor}).`, data_hora: U.todayISO() });
+      
+      const item = Store.get('itens_solicitacao').find(i=>i.solicitacao_id===solicitacaoId && i.ficha_id===fichaId); 
+      if(item) Store.update('itens_solicitacao', item.id, { situacao_item: 'Entregue' });
+      
+      if(!U.emprestimoAtivo(fichaId)){
+        Store.add('emprestimos', { 
+          ficha_id: fichaId, 
+          recebedor_nome: recebedor, 
+          recebedor_setor: setor, 
+          responsavel: user.nome, 
+          data_emprestimo: new Date(dataStr+'T12:00:00').toISOString(), 
+          status: 'Emprestada', 
+          data_devolucao_informada: null, 
+          data_confirmacao_fisica: null 
+        });
+        Store.add('historico', { ficha_id: fichaId, usuario_responsavel: user.nome, tipo_movimentacao: 'Retirada (Empréstimo)', descricao: `Ficha retirada por ${recebedor} (${setor}).`, data_hora: U.todayISO() });
       }
-      Store.add('historico', { ficha_id: fichaId, usuario_responsavel: user.nome, tipo_movimentacao: 'Entrega', descricao: `Entregue na solicitação (entrega #${entrega.id}) para ${recebedor}.`, data_hora: U.todayISO() });
     });
+    
     const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===solicitacaoId);
     const entregues = itens.filter(i=>i.situacao_item==='Entregue').length;
     Store.update('solicitacoes', solicitacaoId, { situacao: entregues === itens.length ? 'Concluída' : 'Parcialmente atendida' });
-    this.closeModal(); U.toast('Entrega registrada! Deseja imprimir o comprovante?','success'); this.abrirComprovante(entrega.id); this.renderScreen();
+    
+    this.closeModal(); 
+    U.toast('Retirada registrada com sucesso!','success'); 
+    this.abrirComprovante(entrega.id); 
+    this.renderScreen();
   },
   abrirConfirmarDevolucao(empId){
     const e = Store.get('emprestimos').find(x=>x.id===empId); const f = U.findFicha(e.ficha_id);
@@ -408,8 +513,8 @@ const App = {
       else { html = `<table><thead><tr><th>Número</th><th>Solicitante</th><th>Setor</th><th>Data</th><th>Situação</th></tr></thead><tbody>${sols.map(s=>`<tr><td>${U.esc(s.numero)}</td><td>${U.esc(s.solicitante_nome)}</td><td>${U.esc(s.setor)}</td><td>${U.fmtDate(s.data_criacao)}</td><td>${U.badgeSol(s.situacao)}</td></tr>`).join('')}</tbody></table>`; }
     } else if(tipo === 'entregues' || tipo === 'parciais'){
       const entregas = Store.get('entregas'); const rows = [];
-      entregas.forEach(e=>{ const itens = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); if(tipo === 'parciais' && itens.length === 0) return; const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id); rows.push(`<tr><td>${e.id}</td><td>${U.esc(sol?.numero||'—')}</td><td>${U.esc(e.nome_recebedor)}</td><td>${itens.length} fichas</td><td>${U.fmtDate(e.timestamp_registro)}</td></tr>`); });
-      html = `<table><thead><tr><th>ID</th><th>Solicitação</th><th>Recebedor</th><th>Qtd</th><th>Data</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+      entregas.forEach(e=>{ const itens = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); if(tipo === 'parciais' && itens.length === 0) return; const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id); rows.push(`<tr><td>${e.id}</td><td>${U.esc(sol?.numero||'—')}</td><td>${U.esc(e.nome_recebedor)}</td><td>${itens.length} fichas</td><td>${U.fmtDate(e.data_entrega)}</td></tr>`); });
+      html = `<table><thead><tr><th>ID</th><th>Solicitação</th><th>Recebedor</th><th>Qtd</th><th>Data da Retirada</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
     } else if(tipo === 'emprestadas'){
       const emps = Store.get('emprestimos').filter(e=>e.status==='Emprestada'||e.status==='Devolução informada');
       html = `<table><thead><tr><th>Lote</th><th>Código</th><th>Recebedor</th><th>Setor</th><th>Data Emp.</th><th>Status</th></tr></thead><tbody>${emps.map(e=>{const f = U.findFicha(e.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(e.recebedor_nome)}</td><td>${U.esc(e.recebedor_setor)}</td><td>${U.fmtDate(e.data_emprestimo)}</td><td>${U.badgeStatusEmp(e.status)}</td></tr>`;}).join('')}</tbody></table>`;
