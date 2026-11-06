@@ -325,6 +325,7 @@ const App = {
       return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(f.situacao_planilha)}</td></tr>`; 
     }).join('');
     
+    // AQUI ESTÁ A CORREÇÃO DA DATA MANUAL
     const body = `
       <div class="receipt">
         <div class="receipt-head">
@@ -334,7 +335,7 @@ const App = {
         <div class="receipt-grid">
           <div class="f"><strong>Quem retirou</strong>${U.esc(e.nome_recebedor)}</div>
           <div class="f"><strong>Setor do recebedor</strong>${U.esc(e.setor_recebedor)}</div>
-          <div class="f"><strong>Data da Retirada</strong>${U.fmtDate(e.data_entrega)}</div>
+          <div class="f"><strong>Data da Retirada</strong><span style="display:inline-block; border-bottom:1px solid #0F172A; width:150px; height:16px;">&nbsp;</span></div>
           <div class="f"><strong>Liberado por</strong>${U.esc(e.responsavel_entrega)}</div>
         </div>
         <table>
@@ -349,7 +350,7 @@ const App = {
         </div>
       </div>`;
       
-    this.openModal('Comprovante de Retirada', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print">🖨️ Imprimir Comprovante</button>`, true);
+    this.openModal('Comprovante de Retirada', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print">��️ Imprimir Comprovante</button>`, true);
     document.getElementById('btn-print').addEventListener('click', ()=>window.print());
   },
   abrirNovaEntrega(solicitacaoId){
