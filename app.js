@@ -10,7 +10,7 @@ const U = {
     setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); }, 3500);
   },
   badgeSit(sit){
-    const map = {'Arquivada':'badge-green','Em correção':'badge-yellow','Pendente de FO':'badge-orange','Pendente de RA':'badge-orange','Em revisão':'badge-blue','Emprestada':'badge-red','Emprestada (devolução informada)':'badge-orange','Devolução informada':'badge-orange','Recebida e conferida':'badge-green','Devolvida para correção':'badge-yellow','Disponível':'badge-green','Indisponível':'badge-gray','Entregue':'badge-green','Não encontrada':'badge-gray'};
+    const map = {'Arquivada':'badge-green','Em correção':'badge-yellow','Pendente de FP':'badge-orange','Pendente de RA':'badge-orange','Em revisão':'badge-blue','Emprestada':'badge-red','Emprestada (devolução informada)':'badge-orange','Devolução informada':'badge-orange','Recebida e conferida':'badge-green','Devolvida para correção':'badge-yellow','Disponível':'badge-green','Indisponível':'badge-gray','Entregue':'badge-green','Não encontrada':'badge-gray'};
     return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
   },
   badgeSol(sit){
@@ -128,7 +128,7 @@ const App = {
     const devolPend = emps.filter(e=>e.status==='Devolução informada');
     const totalEntregue = Store.get('itens_entrega').length;
     const emCorrecao = fichas.filter(f=>f.situacao_planilha==='Em correção').length;
-    const pFO = fichas.filter(f=>f.situacao_planilha==='Pendente de FO').length;
+    const pFP = fichas.filter(f=>f.situacao_planilha==='Pendente de FP').length;
     const pRA = fichas.filter(f=>f.situacao_planilha==='Pendente de RA').length;
     const emRevisao = fichas.filter(f=>f.situacao_planilha==='Em revisão').length;
     const arquivadas = fichas.filter(f=>f.situacao_planilha==='Arquivada').length;
@@ -141,7 +141,7 @@ const App = {
       <div class="grid grid-4" style="margin-top:20px;">${this.metricCard('Fichas retiradas', totalEntregue,'green')}${this.metricCard('Fichas emprestadas', emprestadas,'red')}${this.metricCard('Devoluções p/ conferir', devolPend.length,'yellow')}${this.metricCard('Fichas em correção', emCorrecao,'yellow')}</div>
       <div class="section grid grid-2">
         <div class="card"><h3 style="margin-bottom:20px;">Solicitações nos últimos 7 dias</h3><div class="chart-bars">${labels.map((l,i)=>`<div class="bar-col"><div class="bar-value">${vals[i]}</div><div class="bar" style="height:${(vals[i]/maxV*100)||2}%"></div><div class="bar-label">${l}</div></div>`).join('')}</div></div>
-        <div class="card"><h3 style="margin-bottom:20px;">Situação das fichas</h3>${this.hbar('Arquivadas', arquivadas, fichas.length,'var(--success)')}${this.hbar('Em correção', emCorrecao, fichas.length,'var(--warning)')}${this.hbar('Pendente FO', pFO, fichas.length,'var(--warning)')}${this.hbar('Pendente RA', pRA, fichas.length,'var(--warning)')}${this.hbar('Em revisão', emRevisao, fichas.length,'var(--info)')}${this.hbar('Emprestadas', emprestadas, fichas.length,'var(--danger)')}</div>
+        <div class="card"><h3 style="margin-bottom:20px;">Situação das fichas</h3>${this.hbar('Arquivadas', arquivadas, fichas.length,'#10B981')}${this.hbar('Em correção', emCorrecao, fichas.length,'#F59E0B')}${this.hbar('Pendente FP', pFP, fichas.length,'#F59E0B')}${this.hbar('Pendente RA', pRA, fichas.length,'#F59E0B')}${this.hbar('Em revisão', emRevisao, fichas.length,'#3B82F6')}${this.hbar('Emprestadas', emprestadas, fichas.length,'#EF4444')}</div>
       </div>
       <div class="section grid grid-2">
         <div class="card"><div class="section-head"><h3>Solicitações recentes</h3><button class="btn btn-secondary btn-sm" data-nav="solicitacoes">Ver todas</button></div>${sols.slice().sort((a,b)=>b.data_criacao.localeCompare(a.data_criacao)).slice(0,5).map(s=>`<div class="analysis-item" style="cursor:pointer" data-sol-detail="${s.id}"><div class="info"><strong>${U.esc(s.numero)}</strong> · ${U.esc(s.solicitante_nome)}<br><span class="reason">${U.esc(s.setor)} · ${U.fmtDateTime(s.data_criacao)}</span></div><div>${U.badgeSol(s.situacao)}</div></div>`).join('') || '<div class="table-empty">Nenhuma solicitação.</div>'}</div>
@@ -183,7 +183,7 @@ const App = {
       ${user.perfil==='admin' ? `<div class="section card"><div class="section-head"><h3>Retiradas registradas</h3><button class="btn btn-primary btn-sm" data-nova-entrega="${s.id}" ${restantes<=0?'disabled':''}>+ Registrar Retirada</button></div>${entregas.length ? entregas.map(e=>{ const itensE = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); return `<div class="analysis-item"><div class="info"><strong>Retirada #${e.id}</strong> — Data: ${U.fmtDate(e.data_entrega)}<br><span class="reason">Retirado por ${U.esc(e.nome_recebedor)} — ${itensE.length} ficha(s)</span></div><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></div>`; }).join('') : '<div class="table-empty">Nenhuma retirada.</div>'}</div>` : ''}`;
   },
   screenFichas(){
-    return `<div class="filter-bar"><input type="text" id="f-fichas-busca" placeholder="Buscar por lote ou código..."><select id="f-fichas-sit"><option value="">Todas as situações</option><option>Arquivada</option><option>Em correção</option><option>Pendente de FO</option><option>Pendente de RA</option><option>Em revisão</option></select><select id="f-fichas-aba"><option value="">Todas as abas</option><option>Arquivadas</option><option>Em Correção</option></select></div>
+    return `<div class="filter-bar"><input type="text" id="f-fichas-busca" placeholder="Buscar por lote ou código..."><select id="f-fichas-sit"><option value="">Todas as situações</option><option>Arquivada</option><option>Em correção</option><option>Pendente de FP</option><option>Pendente de RA</option><option>Em revisão</option></select><select id="f-fichas-aba"><option value="">Todas as abas</option><option>Arquivadas</option><option>Em Correção</option></select></div>
       <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th><th>Aba</th><th>Empréstimo ativo</th><th>Última consulta</th></tr></thead><tbody id="fichas-tbody"></tbody></table></div>`;
   },
   renderFichasTable(){
@@ -325,7 +325,6 @@ const App = {
       return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(f.situacao_planilha)}</td></tr>`; 
     }).join('');
     
-    // AQUI ESTÁ A CORREÇÃO DA DATA MANUAL
     const body = `
       <div class="receipt">
         <div class="receipt-head">
@@ -350,7 +349,7 @@ const App = {
         </div>
       </div>`;
       
-    this.openModal('Comprovante de Retirada', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print">��️ Imprimir Comprovante</button>`, true);
+    this.openModal('Comprovante de Retirada', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print">🖨️ Imprimir Comprovante</button>`, true);
     document.getElementById('btn-print').addEventListener('click', ()=>window.print());
   },
   abrirNovaEntrega(solicitacaoId){

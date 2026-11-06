@@ -13,16 +13,16 @@ function seedData() {
   ];
   const fichasRaw = [
     ['45821','PROD-100','Arquivada','Arquivadas'],['45821','PROD-205','Em correção','Em Correção'],
-    ['45822','PROD-100','Pendente de FO','Arquivadas'],['45823','PROD-310','Em revisão','Em Correção'],
+    ['45822','PROD-100','Pendente de FP','Arquivadas'],['45823','PROD-310','Em revisão','Em Correção'],
     ['45824','PROD-100','Arquivada','Arquivadas'],['45825','PROD-205','Arquivada','Arquivadas'],
     ['45826','PROD-310','Pendente de RA','Arquivadas'],['45827','PROD-100','Arquivada','Arquivadas'],
     ['45828','PROD-205','Em correção','Em Correção'],['45829','PROD-310','Arquivada','Arquivadas'],
-    ['45830','PROD-100','Arquivada','Arquivadas'],['45831','PROD-205','Pendente de FO','Arquivadas'],
+    ['45830','PROD-100','Arquivada','Arquivadas'],['45831','PROD-205','Pendente de FP','Arquivadas'],
     ['45832','PROD-310','Arquivada','Arquivadas'],['45833','PROD-100','Em revisão','Em Correção'],
     ['45834','PROD-205','Arquivada','Arquivadas'],['45835','PROD-310','Pendente de RA','Arquivadas'],
     ['45836','PROD-100','Arquivada','Arquivadas'],['45837','PROD-205','Arquivada','Arquivadas'],
     ['45838','PROD-310','Em correção','Em Correção'],['45839','PROD-100','Arquivada','Arquivadas'],
-    ['45840','PROD-205','Arquivada','Arquivadas'],['45841','PROD-310','Pendente de FO','Arquivadas'],
+    ['45840','PROD-205','Arquivada','Arquivadas'],['45841','PROD-310','Pendente de FP','Arquivadas'],
     ['45842','PROD-100','Arquivada','Arquivadas'],['45843','PROD-205','Em revisão','Em Correção'],
     ['45844','PROD-310','Arquivada','Arquivadas']
   ];
