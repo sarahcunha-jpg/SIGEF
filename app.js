@@ -25,11 +25,13 @@ const U = {
   findFicha(id){ if(!id) return null; return Store.get('fichas').find(f=>f.id===id); },
   emprestimoAtivo(fichaId){ return Store.get('emprestimos').find(e=>e.ficha_id===fichaId && (e.status==='Emprestada'||e.status==='Devolução informada')); }
 };
+
 const Auth = {
   current(){ try { return JSON.parse(sessionStorage.getItem('sigef_user')); } catch(e){ return null; } },
   login(email, senha){ const u = Store.get('usuarios').find(x=>x.email===email && x.senha===senha && x.ativo); if(!u) return null; sessionStorage.setItem('sigef_user', JSON.stringify(u)); return u; },
   logout(){ sessionStorage.removeItem('sigef_user'); }
 };
+
 const App = {
   state: { screen:'dashboard', params:{}, sidebarOpen:false, novaItems:[] },
   init(){
@@ -52,7 +54,11 @@ const App = {
     document.getElementById('login-form').addEventListener('submit', e => {
       e.preventDefault();
       const u = Auth.login(document.getElementById('login-email').value.trim(), document.getElementById('login-senha').value);
-      if(u){ U.toast('Bem-vindo(a), '+u.nome,'success'); this.navigate('dashboard'); } else U.toast('Credenciais inválidas.','error');
+      if(u){ 
+        U.toast('Bem-vindo(a), '+u.nome,'success'); 
+        this.renderShell(); 
+        this.navigate('dashboard'); 
+      } else U.toast('Credenciais inválidas.','error');
     });
   },
   renderShell(){
@@ -81,7 +87,7 @@ const App = {
   },
   renderNav(){
     const user = Auth.current(); const admin = user.perfil==='admin';
-    const items = admin ? [['dashboard','Painel','📊'],['solicitacoes','Solicitações','📥'],['fichas','Consulta de Fichas','🗂️'],['entregas','Entregas','📦'],['emprestimos','Empréstimos','🔄'],['devolucoes','Devoluções','↩️'],['historico','Histórico','🕓'],['relatorios','Relatórios','📈'],['planilha','Planilha (demo)','📑'],['emails','E-mails (demo)','✉️'],['usuarios','Usuários','👥'],['configuracoes','Configurações','⚙️']] : [['dashboard','Meu Painel','📊'],['nova-solicitacao','Nova Solicitação','➕'],['minhas-solicitacoes','Minhas Solicitações','📥'],['minhas-fichas-emprestadas','Minhas Fichas Emprestadas','��'],['minhas-devolucoes','Minhas Devoluções','↩️'],['meu-historico','Meu Histórico','🕓'],['minha-conta','Minha Conta','👤']];
+    const items = admin ? [['dashboard','Painel','📊'],['solicitacoes','Solicitações','📥'],['fichas','Consulta de Fichas','🗂️'],['entregas','Entregas','📦'],['emprestimos','Empréstimos','🔄'],['devolucoes','Devoluções','↩️'],['historico','Histórico','🕓'],['relatorios','Relatórios','📈'],['planilha','Planilha (demo)','📑'],['emails','E-mails (demo)','✉️'],['usuarios','Usuários','👥'],['configuracoes','Configurações','⚙️']] : [['dashboard','Meu Painel','📊'],['nova-solicitacao','Nova Solicitação','➕'],['minhas-solicitacoes','Minhas Solicitações','📥'],['minhas-fichas-emprestadas','Minhas Fichas Emprestadas','🔄'],['minhas-devolucoes','Minhas Devoluções','↩️'],['meu-historico','Meu Histórico','🕓'],['minha-conta','Minha Conta','👤']];
     const nav = document.getElementById('nav');
     nav.innerHTML = items.map(([key,label,ico]) => `<div class="nav-item ${this.state.screen===key?'active':''}" data-screen="${key}"><span class="ico">${ico}</span><span>${U.esc(label)}</span></div>`).join('');
     nav.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', () => { this.state.sidebarOpen=false; this.navigate(el.dataset.screen); }));
