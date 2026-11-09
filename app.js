@@ -10,7 +10,13 @@ const U = {
     setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); }, 3500);
   },
   badgeSol(sit){
-    const map = {'Pendente':'badge-gray','Em Separação':'badge-warning','Aguardando Devolução':'badge-orange','Finalizada':'badge-green'};
+    const map = {
+      'Pendente':'badge-gray',
+      'Em Separação':'badge-warning',
+      'Aguardando Devolução':'badge-orange',
+      'Aguardando Confirmação':'badge-purple',
+      'Finalizada':'badge-green'
+    };
     return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
   },
   badgeItem(sit){
@@ -18,7 +24,7 @@ const U = {
       'Pendente':'badge-gray',
       'Separando':'badge-warning',
       'Entregue':'badge-green',
-      'Devolução Solicitada':'badge-orange',
+      'Devolução Solicitada':'badge-purple',
       'Devolvido':'badge-blue'
     };
     return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
@@ -72,7 +78,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.8</div>
+          <div class="sidebar-footer">v3.9</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -131,7 +137,6 @@ const App = {
     if(!lote) return '';
     const f = Store.get('fichas').find(x => x.lote === lote);
     if(f) {
-      // Se a ficha estiver com problema, avisa o solicitante
       let alerta = '';
       if(f.situacao_planilha !== 'Arquivada') {
         alerta = ` <span style="color:var(--danger); font-size:11px;">(Atenção: Ficha ${f.situacao_planilha})</span>`;
@@ -151,8 +156,8 @@ const App = {
 
       const solPendentes = sols.filter(s=>s.situacao==='Pendente').length;
       const solSeparacao = sols.filter(s=>s.situacao==='Em Separação').length;
+      const solAguardandoConfirmacao = sols.filter(s=>s.situacao==='Aguardando Confirmação').length;
       const solConcluidas = sols.filter(s=>s.situacao==='Finalizada').length;
-      const fDevolvidas = itens.filter(i => i.situacao_item === 'Devolvido').length;
 
       const fArquivadas = fichas.filter(f=>f.situacao_planilha==='Arquivada').length;
       const fCorrecao = fichas.filter(f=>f.situacao_planilha==='Em correção').length;
@@ -165,8 +170,8 @@ const App = {
         <div class="grid grid-4">
           ${this.metricCard('Solicitações Pendentes', solPendentes)}
           ${this.metricCard('Em Separação', solSeparacao)}
+          ${this.metricCard('Aguardando Confirmação', solAguardandoConfirmacao)}
           ${this.metricCard('Finalizadas', solConcluidas)}
-          ${this.metricCard('Fichas Devolvidas', fDevolvidas)}
         </div>
 
         <div class="section card">
@@ -245,7 +250,7 @@ const App = {
 
       if(user.perfil === 'solicitante') {
         if(it.situacao_item === 'Entregue') return `<button class="btn btn-warning btn-sm" data-acao-item="${it.id}" data-acao="solicitar-devolucao">Informar Devolução</button>`;
-        if(it.situacao_item === 'Devolução Solicitada') return `<span class="badge badge-orange" style="font-size:11px;">Aguardando Retorno</span>`;
+        if(it.situacao_item === 'Devolução Solicitada') return `<span class="badge badge-purple" style="font-size:11px;">Aguardando Confirmação</span>`;
         if(it.situacao_item === 'Devolvido') return `<span style="color:var(--success);font-weight:600;">✓ Devolvido</span>`;
         
         if(it.situacao_item === 'Pendente' && isFichaIndisponivel) {
@@ -344,8 +349,14 @@ const App = {
           </div>` : ''}
         </div>
       </div>
-      <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Situação</th></tr></thead><tbody>
-      ${Store.get('fichas').map(f=>`<tr><td><strong>${f.lote}</strong></td><td>${f.codigo_produto}</td><td>${f.nome_produto}</td><td>${U.badgeFicha(f.situacao_planilha)}</td></tr>`).join('')}
+      <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Situação</th>${isAdmin ? '<th>Ações</th>' : ''}</tr></thead><tbody>
+      ${Store.get('fichas').map(f=>`<tr>
+        <td><strong>${f.lote}</strong></td>
+        <td>${f.codigo_produto}</td>
+        <td>${f.nome_produto}</td>
+        <td>${U.badgeFicha(f.situacao_planilha)}</td>
+        ${isAdmin ? `<td><button class="btn btn-secondary btn-sm" data-edit-ficha="${f.id}">Editar Status</button></td>` : ''}
+      </tr>`).join('')}
     </tbody></table></div>`; 
   },
   
@@ -380,13 +391,16 @@ const App = {
         if (qtdDevolvidos === todosItens.length) {
           novoSituacao = 'Finalizada';
           U.toast('Todas as fichas foram devolvidas! Solicitação finalizada.', 'success');
-        } else if (qtdEntregues > 0 || qtdDevolSolicitada > 0 || qtdDevolvidos > 0) {
+        } else if (qtdDevolSolicitada > 0) {
+          novoSituacao = 'Aguardando Confirmação'; // Status diferenciado para quando o João clica em devolver
+          U.toast('Devolução informada! Aguardando conferência do Admin.', 'info');
+        } else if (qtdEntregues > 0) {
           if (qtdSeparando > 0 || qtdPendentes > 0) {
              novoSituacao = 'Em Separação';
              U.toast('Status atualizado.', 'info');
           } else {
              novoSituacao = 'Aguardando Devolução';
-             U.toast('Ação registrada.', 'info');
+             U.toast('Status atualizado.', 'info');
           }
         } else if (qtdSeparando > 0) {
           novoSituacao = 'Em Separação';
@@ -435,7 +449,6 @@ const App = {
       document.getElementById('btn-importar-planilha')?.addEventListener('click', () => {
         U.toast('Conectando à planilha... Lendo dados...', 'info');
         setTimeout(() => {
-          // Simula a adição de 2 novas fichas via planilha
           Store.add('fichas', { lote: '99901', codigo_produto: 'PROD-100', nome_produto: 'Parafuso Sextavado Aço Inox', situacao_planilha: 'Arquivada', aba_origem: 'Arquivadas', ultima_consulta: U.todayISO() });
           Store.add('fichas', { lote: '99902', codigo_produto: 'PROD-310', nome_produto: 'Tubo de PVC 100mm', situacao_planilha: 'Em revisão', aba_origem: 'Em Correção', ultima_consulta: U.todayISO() });
           U.toast('Planilha importada com sucesso! 2 novas fichas adicionadas.', 'success');
@@ -477,10 +490,41 @@ const App = {
           this.renderScreen();
         });
       });
+
+      // Lógica para o botão "Editar Status" de cada ficha
+      document.querySelectorAll('[data-edit-ficha]').forEach(b => b.addEventListener('click', () => {
+        const fichaId = Number(b.dataset.editFicha);
+        const ficha = U.findFicha(fichaId);
+        
+        const body = `
+          <div class="form-grid">
+            <div class="field"><label>Lote</label><input type="text" value="${ficha.lote}" disabled style="background:#f1f5f9;"></div>
+            <div class="field"><label>Código do Produto</label><input type="text" value="${ficha.codigo_produto}" disabled style="background:#f1f5f9;"></div>
+            <div class="field" style="grid-column: 1 / -1;"><label>Alterar Situação do Acervo</label>
+              <select id="edit-f-situacao" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+                <option value="Arquivada" ${ficha.situacao_planilha==='Arquivada'?'selected':''}>Arquivada</option>
+                <option value="Pendente de FP" ${ficha.situacao_planilha==='Pendente de FP'?'selected':''}>Pendente de FP</option>
+                <option value="Pendente de RA" ${ficha.situacao_planilha==='Pendente de RA'?'selected':''}>Pendente de RA</option>
+                <option value="Em correção" ${ficha.situacao_planilha==='Em correção'?'selected':''}>Em correção</option>
+                <option value="Em revisão" ${ficha.situacao_planilha==='Em revisão'?'selected':''}>Em revisão</option>
+              </select>
+            </div>
+          </div>
+        `;
+        
+        this.openModal('Editar Status da Ficha', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" id="btn-update-ficha">Salvar Alteração</button>`);
+        
+        document.getElementById('btn-update-ficha').addEventListener('click', () => {
+          const novaSituacao = document.getElementById('edit-f-situacao').value;
+          Store.update('fichas', fichaId, { situacao_planilha: novaSituacao });
+          this.closeModal();
+          U.toast('Status da ficha atualizado!', 'success');
+          this.renderScreen();
+        });
+      }));
     }
   },
   
-  // Função para abrir modal (necessária para adicionar ficha)
   openModal(title, body, foot='') {
     document.body.classList.add('modal-open');
     const el = document.createElement('div'); el.className = 'modal-overlay';

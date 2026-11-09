@@ -1,4 +1,4 @@
-const DB_KEY = 'sigef_data_v8';
+const DB_KEY = 'sigef_data_v9';
 function seedData() {
   const iso = d => d.toISOString();
   const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return iso(d); };
@@ -14,13 +14,12 @@ function seedData() {
     'PROD-310': 'Tubo de PVC 100mm'
   };
 
-  // Fichas adicionadas com status de teste
   const fichasRaw = [
     ['45821','PROD-100','Arquivada','Arquivadas'],
-    ['45822','PROD-205','Pendente de FP','Arquivadas'], // Teste FP
-    ['45823','PROD-310','Pendente de RA','Arquivadas'], // Teste RA
-    ['45824','PROD-100','Em correção','Em Correção'],   // Teste Correção
-    ['45825','PROD-205','Em revisão','Em Correção'],    // Teste Revisão
+    ['45822','PROD-205','Pendente de FP','Arquivadas'],
+    ['45823','PROD-310','Pendente de RA','Arquivadas'],
+    ['45824','PROD-100','Em correção','Em Correção'],
+    ['45825','PROD-205','Em revisão','Em Correção'],
     ['45826','PROD-310','Arquivada','Arquivadas'],
     ['45827','PROD-100','Arquivada','Arquivadas']
   ];
@@ -29,12 +28,17 @@ function seedData() {
     id:i+1, lote:f[0], codigo_produto:f[1], nome_produto: produtosMap[f[1]] || 'Produto Padrão', situacao_planilha:f[2], aba_origem:f[3], ultima_consulta:daysAgo(0)
   }));
   
+  // Cenário de teste: 
+  // Sol 1: Pendente
+  // Sol 2: João já informou devolução (Devolução Solicitada) -> Status master: Aguardando Confirmação
   const solicitacoes = [
-    { id:1, numero:'SOL-2025-0001', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(2), situacao:'Pendente', observacoes:'' }
+    { id:1, numero:'SOL-2025-0001', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(2), situacao:'Pendente', observacoes:'' },
+    { id:2, numero:'SOL-2025-0002', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(3), situacao:'Aguardando Confirmação', observacoes:'' }
   ];
 
   const itens_solicitacao = [
-    { id:1, solicitacao_id:1, ficha_id:1, situacao_item:'Pendente', lote_snapshot:null, codigo_snapshot:null }
+    { id:1, solicitacao_id:1, ficha_id:1, situacao_item:'Pendente', lote_snapshot:null, codigo_snapshot:null },
+    { id:2, solicitacao_id:2, ficha_id:2, situacao_item:'Devolução Solicitada', lote_snapshot:null, codigo_snapshot:null }
   ];
 
   return { usuarios, fichas, solicitacoes, itens_solicitacao };
