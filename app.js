@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.3</div>
+          <div class="sidebar-footer">v3.4</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -109,7 +109,6 @@ const App = {
   },
   metricCard(label, value){ return `<div class="card metric"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
   
-  // FUNÇÃO PARA RETORNAR O FEEDBACK DO LOTE ENQUANTO DIGITA
   getLoteFeedback(lote) {
     if(!lote) return '';
     const f = Store.get('fichas').find(x => x.lote === lote);
@@ -150,7 +149,8 @@ const App = {
           <div class="grid grid-3" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--success);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fArquivadas}</div>
-              <div style="font-size:13px; color:var(--text-muted);">Arquivadas (Prontas)</div>
+              <!-- Alterado aqui para Concluídas -->
+              <div style="font-size:13px; color:var(--text-muted);">Concluídas</div>
             </div>
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fCorrecao}</div>
@@ -252,7 +252,6 @@ const App = {
             <input type="text" class="nova-lote" value="${it.lote||''}" placeholder="Digite o Lote (ex: 45821)" style="padding:10px;border:1px solid var(--border);border-radius:8px;flex:1;">
             <button class="btn btn-danger btn-rm-item" data-idx="${i}">X</button>
           </div>
-          <!-- AQUI É ONDE O NOME DO PRODUTO APARECE -->
           <div class="lote-feedback" id="feedback-${i}" style="font-size:13px; margin-top:4px;">
             ${it.lote ? this.getLoteFeedback(it.lote) : ''}
           </div>
@@ -326,7 +325,6 @@ const App = {
           const idx = Number(row.dataset.idx); 
           this.state.novaItems[idx].lote = e.target.value.trim(); 
           
-          // Atualiza o feedback (Nome do Produto) em tempo real
           const feedbackDiv = document.getElementById(`feedback-${idx}`);
           if(feedbackDiv) {
             feedbackDiv.innerHTML = this.getLoteFeedback(this.state.novaItems[idx].lote);
