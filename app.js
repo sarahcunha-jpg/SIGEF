@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.2</div>
+          <div class="sidebar-footer">v3.3</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -83,21 +83,11 @@ const App = {
   },
   renderNav(){
     const user = Auth.current(); const admin = user.perfil==='admin';
-    
-    const adminItems = [
-      ['dashboard','Painel','📊'],['solicitacoes','Gerenciar Solicitações','📥'],['fichas','Consulta de Fichas','🗂️']
-    ];
-    
-    const userItems = [
-      ['dashboard','Meu Painel','📊'],
-      ['nova-solicitacao','Nova Solicitação','➕'],
-      ['minhas-solicitacoes','Minhas Solicitações','📥']
-    ];
-
+    const adminItems = [['dashboard','Painel','📊'],['solicitacoes','Gerenciar Solicitações','📥'],['fichas','Consulta de Fichas','🗂️']];
+    const userItems = [['dashboard','Meu Painel','📊'],['nova-solicitacao','Nova Solicitação','➕'],['minhas-solicitacoes','Minhas Solicitações','📥']];
     const items = admin ? adminItems : userItems;
     const nav = document.getElementById('nav');
     nav.innerHTML = items.map(([key,label,ico]) => `<div class="nav-item ${this.state.screen===key?'active':''}" data-screen="${key}"><span class="ico">${ico}</span><span>${U.esc(label)}</span></div>`).join('');
-    
     nav.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', () => { this.state.sidebarOpen=false; this.navigate(el.dataset.screen); }));
   },
   navigate(screen, params={}, updateHash=true){
@@ -119,6 +109,17 @@ const App = {
   },
   metricCard(label, value){ return `<div class="card metric"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
   
+  // FUNÇÃO PARA RETORNAR O FEEDBACK DO LOTE ENQUANTO DIGITA
+  getLoteFeedback(lote) {
+    if(!lote) return '';
+    const f = Store.get('fichas').find(x => x.lote === lote);
+    if(f) {
+      return `<span style="color:var(--success); font-weight:600;">✓ ${f.nome_produto} (${f.codigo_produto})</span>`;
+    } else {
+      return `<span style="color:var(--danger);">✕ Lote não encontrado no sistema</span>`;
+    }
+  },
+
   screenDashboard(){ 
     const user = Auth.current();
     if(user.perfil === 'admin') {
@@ -147,37 +148,30 @@ const App = {
         <div class="section card">
           <div class="section-head"><h3>Status do Acervo de Fichas</h3></div>
           <div class="grid grid-3" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-            
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--success);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fArquivadas}</div>
               <div style="font-size:13px; color:var(--text-muted);">Arquivadas (Prontas)</div>
             </div>
-            
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fCorrecao}</div>
               <div style="font-size:13px; color:var(--text-muted);">Em Correção</div>
             </div>
-            
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fFP}</div>
               <div style="font-size:13px; color:var(--text-muted);">Pendente de FP</div>
             </div>
-            
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fRA}</div>
               <div style="font-size:13px; color:var(--text-muted);">Pendente de RA</div>
             </div>
-            
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--info);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fRevisao}</div>
               <div style="font-size:13px; color:var(--text-muted);">Em Revisão</div>
             </div>
-            
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--danger);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fNaoEncontradas}</div>
               <div style="font-size:13px; color:var(--text-muted);">Não Encontradas</div>
             </div>
-
           </div>
         </div>
 
@@ -229,13 +223,14 @@ const App = {
         <h3 style="margin-bottom:16px;">Fichas da Solicitação</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Lote</th><th>Código</th><th>Situação do Item</th>${user.perfil==='admin' ? '<th>Ação</th>' : ''}</tr></thead>
+            <thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Situação do Item</th>${user.perfil==='admin' ? '<th>Ação</th>' : ''}</tr></thead>
             <tbody>
               ${itens.map(it=>{
                 const f = U.findFicha(it.ficha_id);
                 return `<tr>
                   <td><strong>${f ? f.lote : it.lote_snapshot}</strong></td>
-                  <td>${f ? f.codigo_produto : '<span style="color:var(--danger);">Não encontrada</span>'}</td>
+                  <td>${f ? f.codigo_produto : '<span style="color:var(--danger);">Não encontrado</span>'}</td>
+                  <td>${f ? f.nome_produto : '-'}</td>
                   <td>${U.badgeItem(it.situacao_item)}</td>
                   ${user.perfil==='admin' ? `<td>${getAcaoBtn(it)}</td>` : ''}
                 </tr>`;
@@ -250,11 +245,17 @@ const App = {
     const items = this.state.novaItems || [];
     return `<div class="card">
       <h3>Nova solicitação</h3>
-      <p style="color:var(--text-muted);margin:8px 0 20px;">Informe os lotes que você precisa.</p>
+      <p style="color:var(--text-muted);margin:8px 0 20px;">Informe os lotes que você precisa. O sistema mostrará o produto para você confirmar.</p>
       <div id="nova-itens">${items.map((it,i)=>`
-        <div class="item-row" data-idx="${i}" style="display:flex;gap:12px;margin-bottom:12px;">
-          <input type="text" class="nova-lote" value="${it.lote||''}" placeholder="Lote (ex: 45821)" style="padding:10px;border:1px solid var(--border);border-radius:8px;flex:1;">
-          <button class="btn btn-danger btn-rm-item" data-idx="${i}">X</button>
+        <div class="item-row" data-idx="${i}" style="display:flex; flex-direction:column; gap:4px; margin-bottom:16px;">
+          <div style="display:flex; gap:12px;">
+            <input type="text" class="nova-lote" value="${it.lote||''}" placeholder="Digite o Lote (ex: 45821)" style="padding:10px;border:1px solid var(--border);border-radius:8px;flex:1;">
+            <button class="btn btn-danger btn-rm-item" data-idx="${i}">X</button>
+          </div>
+          <!-- AQUI É ONDE O NOME DO PRODUTO APARECE -->
+          <div class="lote-feedback" id="feedback-${i}" style="font-size:13px; margin-top:4px;">
+            ${it.lote ? this.getLoteFeedback(it.lote) : ''}
+          </div>
         </div>`).join('')}
       </div>
       <button class="btn btn-secondary btn-sm" id="btn-add-item" style="margin-top:12px;">+ Adicionar Lote</button>
@@ -272,7 +273,11 @@ const App = {
     </tbody></table></div>`;
   },
   
-  screenFichas(){ return `<div class="card"><h3>Consulta de Fichas</h3><div class="table-wrap" style="margin-top:16px;"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th></tr></thead><tbody>${Store.get('fichas').map(f=>`<tr><td>${f.lote}</td><td>${f.codigo_produto}</td><td>${f.situacao_planilha}</td></tr>`).join('')}</tbody></table></div></div>`; },
+  screenFichas(){ 
+    return `<div class="card"><h3>Consulta de Fichas</h3><div class="table-wrap" style="margin-top:16px;"><table><thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Situação</th></tr></thead><tbody>
+      ${Store.get('fichas').map(f=>`<tr><td>${f.lote}</td><td>${f.codigo_produto}</td><td>${f.nome_produto}</td><td>${f.situacao_planilha}</td></tr>`).join('')}
+    </tbody></table></div></div>`; 
+  },
   
   events: {
     dashboard: function(){ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); },
@@ -314,7 +319,21 @@ const App = {
       document.getElementById('btn-add-item')?.addEventListener('click', ()=>{ this.state.novaItems.push({ lote:'' }); this.renderScreen(); });
       const container = document.getElementById('nova-itens');
       container?.addEventListener('click', e=>{ const rmBtn = e.target.closest('.btn-rm-item'); if(rmBtn){ this.state.novaItems.splice(Number(rmBtn.dataset.idx), 1); this.renderScreen(); } });
-      container?.addEventListener('input', e=>{ if(e.target.classList.contains('nova-lote')) { const row = e.target.closest('.item-row'); const idx = Number(row.dataset.idx); this.state.novaItems[idx].lote = e.target.value.trim(); } });
+      
+      container?.addEventListener('input', e=>{ 
+        if(e.target.classList.contains('nova-lote')) { 
+          const row = e.target.closest('.item-row'); 
+          const idx = Number(row.dataset.idx); 
+          this.state.novaItems[idx].lote = e.target.value.trim(); 
+          
+          // Atualiza o feedback (Nome do Produto) em tempo real
+          const feedbackDiv = document.getElementById(`feedback-${idx}`);
+          if(feedbackDiv) {
+            feedbackDiv.innerHTML = this.getLoteFeedback(this.state.novaItems[idx].lote);
+          }
+        } 
+      });
+      
       document.getElementById('btn-enviar-sol')?.addEventListener('click', ()=>{
         const itensValidos = this.state.novaItems.filter(i=>i.lote);
         if(!itensValidos.length){ U.toast('Adicione pelo menos um lote.','error'); return; }
