@@ -78,7 +78,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.10</div>
+          <div class="sidebar-footer">v3.11</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -133,7 +133,6 @@ const App = {
     return lotes.join(', ');
   },
 
-  // Função para calcular quantas fichas de uma solicitação já foram entregues
   getEntreguesCount(solId) {
     const itens = Store.get('itens_solicitacao').filter(i => i.solicitacao_id === solId);
     const entregues = itens.filter(i => ['Entregue', 'Devolução Solicitada', 'Devolvido'].includes(i.situacao_item)).length;
@@ -161,11 +160,13 @@ const App = {
       const fichas = Store.get('fichas');
       const itens = Store.get('itens_solicitacao');
 
-      const solPendentes = sols.filter(s=>s.situacao==='Pendente').length;
-      const solSeparacao = sols.filter(s=>s.situacao==='Em Separação').length;
-      const solAguardandoConfirmacao = sols.filter(s=>s.situacao==='Aguardando Confirmação').length;
+      // Cálculos para os novos cards de fichas
+      const qtdFichasEntregues = itens.filter(i => i.situacao_item === 'Entregue').length;
+      const qtdAguardandoConfirmacao = itens.filter(i => i.situacao_item === 'Devolução Solicitada').length;
+      const qtdFichasDevolvidas = itens.filter(i => i.situacao_item === 'Devolvido').length;
       const solConcluidas = sols.filter(s=>s.situacao==='Finalizada').length;
 
+      // Cálculos para o Acervo
       const fArquivadas = fichas.filter(f=>f.situacao_planilha==='Arquivada').length;
       const fCorrecao = fichas.filter(f=>f.situacao_planilha==='Em correção').length;
       const fFP = fichas.filter(f=>f.situacao_planilha==='Pendente de FP').length;
@@ -175,10 +176,10 @@ const App = {
 
       return `
         <div class="grid grid-4">
-          ${this.metricCard('Solicitações Pendentes', solPendentes)}
-          ${this.metricCard('Em Separação', solSeparacao)}
-          ${this.metricCard('Aguardando Confirmação', solAguardandoConfirmacao)}
-          ${this.metricCard('Finalizadas', solConcluidas)}
+          ${this.metricCard('Fichas Entregues', qtdFichasEntregues)}
+          ${this.metricCard('Aguardando Confirmação', qtdAguardandoConfirmacao)}
+          ${this.metricCard('Fichas Devolvidas', qtdFichasDevolvidas)}
+          ${this.metricCard('Solicitações Finalizadas', solConcluidas)}
         </div>
 
         <div class="section card">
