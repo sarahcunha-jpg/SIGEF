@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.0</div>
+          <div class="sidebar-footer">v3.2</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -84,12 +84,10 @@ const App = {
   renderNav(){
     const user = Auth.current(); const admin = user.perfil==='admin';
     
-    // Menu Admin
     const adminItems = [
-      ['dashboard','Painel','📊'],['solicitacoes','Gerenciar Solicitações','📥'],['fichas','Consulta','🗂️']
+      ['dashboard','Painel','📊'],['solicitacoes','Gerenciar Solicitações','📥'],['fichas','Consulta de Fichas','🗂️']
     ];
     
-    // Menu Solicitante
     const userItems = [
       ['dashboard','Meu Painel','📊'],
       ['nova-solicitacao','Nova Solicitação','➕'],
@@ -125,24 +123,77 @@ const App = {
     const user = Auth.current();
     if(user.perfil === 'admin') {
       const sols = Store.get('solicitacoes');
+      const fichas = Store.get('fichas');
+      const itens = Store.get('itens_solicitacao');
+
+      const solPendentes = sols.filter(s=>s.situacao==='Pendente').length;
+      const solSeparacao = sols.filter(s=>s.situacao==='Em Separação').length;
+      const solConcluidas = sols.filter(s=>s.situacao==='Concluída').length;
+
+      const fArquivadas = fichas.filter(f=>f.situacao_planilha==='Arquivada').length;
+      const fCorrecao = fichas.filter(f=>f.situacao_planilha==='Em correção').length;
+      const fFP = fichas.filter(f=>f.situacao_planilha==='Pendente de FP').length;
+      const fRA = fichas.filter(f=>f.situacao_planilha==='Pendente de RA').length;
+      const fRevisao = fichas.filter(f=>f.situacao_planilha==='Em revisão').length;
+      const fNaoEncontradas = itens.filter(i => i.ficha_id === null).length;
+
       return `
-        <div class="grid grid-4">
-          ${this.metricCard('Novas (Pendentes)', sols.filter(s=>s.situacao==='Pendente').length)}
-          ${this.metricCard('Em Separação', sols.filter(s=>s.situacao==='Em Separação').length)}
-          ${this.metricCard('Concluídas', sols.filter(s=>s.situacao==='Concluída').length)}
+        <div class="grid grid-3">
+          ${this.metricCard('Solicitações Pendentes', solPendentes)}
+          ${this.metricCard('Em Separação', solSeparacao)}
+          ${this.metricCard('Concluídas', solConcluidas)}
         </div>
+
         <div class="section card">
-          <div class="section-head"><h3>Ações do Administrador</h3></div>
+          <div class="section-head"><h3>Status do Acervo de Fichas</h3></div>
+          <div class="grid grid-3" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+            
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--success);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fArquivadas}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Arquivadas (Prontas)</div>
+            </div>
+            
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fCorrecao}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Em Correção</div>
+            </div>
+            
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fFP}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Pendente de FP</div>
+            </div>
+            
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fRA}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Pendente de RA</div>
+            </div>
+            
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--info);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fRevisao}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Em Revisão</div>
+            </div>
+            
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--danger);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fNaoEncontradas}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Não Encontradas</div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="section card">
+          <div class="section-head"><h3>Ações Rápidas</h3></div>
           <div class="table-actions">
             <button class="btn btn-primary" data-nav="solicitacoes">Abrir Fila de Solicitações</button>
+            <button class="btn btn-secondary" data-nav="fichas">Consultar Acervo Completo</button>
           </div>
         </div>`;
     } else {
       const minhas = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
       return `
-        <div class="grid grid-4">
+        <div class="grid grid-3">
           ${this.metricCard('Minhas Solicitações', minhas.length)}
-          ${this.metricCard('Aguardando', minhas.filter(s=>s.situacao!=='Concluída').length)}
+          ${this.metricCard('Em Andamento', minhas.filter(s=>s.situacao!=='Concluída').length)}
           ${this.metricCard('Concluídas', minhas.filter(s=>s.situacao==='Concluída').length)}
         </div>
         <div class="section card">
@@ -163,7 +214,6 @@ const App = {
     const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===s.id);
     const user = Auth.current();
     
-    // Renderiza os botões de ação APENAS para o admin
     const getAcaoBtn = (it) => {
       if(user.perfil !== 'admin') return U.badgeItem(it.situacao_item);
       if(it.situacao_item === 'Pendente') return `<button class="btn btn-secondary btn-sm" data-acao-item="${it.id}" data-acao="separar">Iniciar Separação</button>`;
@@ -185,7 +235,7 @@ const App = {
                 const f = U.findFicha(it.ficha_id);
                 return `<tr>
                   <td><strong>${f ? f.lote : it.lote_snapshot}</strong></td>
-                  <td>${f ? f.codigo_produto : '-'}</td>
+                  <td>${f ? f.codigo_produto : '<span style="color:var(--danger);">Não encontrada</span>'}</td>
                   <td>${U.badgeItem(it.situacao_item)}</td>
                   ${user.perfil==='admin' ? `<td>${getAcaoBtn(it)}</td>` : ''}
                 </tr>`;
@@ -232,7 +282,6 @@ const App = {
     'solicitacao-detalhe': function(){ 
       document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); 
       
-      // Lógica de separação e entrega (Apenas Admin tem esses botões no HTML)
       document.querySelectorAll('[data-acao-item]').forEach(b=>b.addEventListener('click', ()=>{
         const itemId = Number(b.dataset.acaoItem);
         const acao = b.dataset.acao;
@@ -242,7 +291,6 @@ const App = {
         if(acao === 'separar') Store.update('itens_solicitacao', itemId, { situacao_item: 'Separando' });
         if(acao === 'entregar') Store.update('itens_solicitacao', itemId, { situacao_item: 'Entregue' });
         
-        // Atualiza o status master da solicitação
         const todosItens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id === solId);
         const qtdEntregues = todosItens.filter(i=>i.situacao_item === 'Entregue').length;
         const qtdSeparando = todosItens.filter(i=>i.situacao_item === 'Separando').length;
