@@ -23,6 +23,10 @@ const U = {
     };
     return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
   },
+  badgeFicha(sit){
+    const map = {'Arquivada':'badge-green','Em correção':'badge-yellow','Pendente de FP':'badge-orange','Pendente de RA':'badge-orange','Em revisão':'badge-blue'};
+    return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
+  },
   findFicha(id){ if(!id) return null; return Store.get('fichas').find(f=>f.id===id); }
 };
 
@@ -50,9 +54,8 @@ const App = {
           <button type="submit" class="btn btn-primary btn-block">Entrar</button>
         </form>
         <div class="demo-box">
-          <strong>Para testar os dois lados:</strong><br><br>
-          👨‍💼 <strong>Admin:</strong> admin@sigef.com / admin123<br>
-          👤 <strong>João (Solicitante):</strong> joao@empresa.com / 123456
+          <strong>Admin:</strong> admin@sigef.com / admin123<br>
+          <strong>João:</strong> joao@empresa.com / 123456
         </div>
       </div></div>`;
     document.getElementById('login-form').addEventListener('submit', e => {
@@ -69,7 +72,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.7</div>
+          <div class="sidebar-footer">v3.8</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -115,7 +118,6 @@ const App = {
   },
   metricCard(label, value){ return `<div class="card metric"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
   
-  // Função auxiliar para pegar os lotes de uma solicitação
   getLotesStr(solId) {
     const itens = Store.get('itens_solicitacao').filter(i => i.solicitacao_id === solId);
     const lotes = itens.map(it => {
@@ -129,7 +131,12 @@ const App = {
     if(!lote) return '';
     const f = Store.get('fichas').find(x => x.lote === lote);
     if(f) {
-      return `<span style="color:var(--success); font-weight:600;">✓ ${f.nome_produto} (${f.codigo_produto})</span>`;
+      // Se a ficha estiver com problema, avisa o solicitante
+      let alerta = '';
+      if(f.situacao_planilha !== 'Arquivada') {
+        alerta = ` <span style="color:var(--danger); font-size:11px;">(Atenção: Ficha ${f.situacao_planilha})</span>`;
+      }
+      return `<span style="color:var(--success); font-weight:600;">✓ ${f.nome_produto} (${f.codigo_produto})</span>${alerta}`;
     } else {
       return `<span style="color:var(--danger);">✕ Lote não encontrado no sistema</span>`;
     }
@@ -145,6 +152,7 @@ const App = {
       const solPendentes = sols.filter(s=>s.situacao==='Pendente').length;
       const solSeparacao = sols.filter(s=>s.situacao==='Em Separação').length;
       const solConcluidas = sols.filter(s=>s.situacao==='Finalizada').length;
+      const fDevolvidas = itens.filter(i => i.situacao_item === 'Devolvido').length;
 
       const fArquivadas = fichas.filter(f=>f.situacao_planilha==='Arquivada').length;
       const fCorrecao = fichas.filter(f=>f.situacao_planilha==='Em correção').length;
@@ -154,10 +162,11 @@ const App = {
       const fNaoEncontradas = itens.filter(i => i.ficha_id === null).length;
 
       return `
-        <div class="grid grid-3">
+        <div class="grid grid-4">
           ${this.metricCard('Solicitações Pendentes', solPendentes)}
           ${this.metricCard('Em Separação', solSeparacao)}
           ${this.metricCard('Finalizadas', solConcluidas)}
+          ${this.metricCard('Fichas Devolvidas', fDevolvidas)}
         </div>
 
         <div class="section card">
@@ -231,10 +240,17 @@ const App = {
     const user = Auth.current();
     
     const getAcaoBtn = (it) => {
+      const f = U.findFicha(it.ficha_id);
+      const isFichaIndisponivel = f && f.situacao_planilha !== 'Arquivada';
+
       if(user.perfil === 'solicitante') {
         if(it.situacao_item === 'Entregue') return `<button class="btn btn-warning btn-sm" data-acao-item="${it.id}" data-acao="solicitar-devolucao">Informar Devolução</button>`;
         if(it.situacao_item === 'Devolução Solicitada') return `<span class="badge badge-orange" style="font-size:11px;">Aguardando Retorno</span>`;
         if(it.situacao_item === 'Devolvido') return `<span style="color:var(--success);font-weight:600;">✓ Devolvido</span>`;
+        
+        if(it.situacao_item === 'Pendente' && isFichaIndisponivel) {
+          return `<span style="color:var(--danger); font-size:12px;">Aguardar correção/retorno</span>`;
+        }
         return U.badgeItem(it.situacao_item);
       } else {
         if(it.situacao_item === 'Pendente') return `<button class="btn btn-secondary btn-sm" data-acao-item="${it.id}" data-acao="separar">Iniciar Separação</button>`;
@@ -253,7 +269,7 @@ const App = {
         <h3 style="margin-bottom:16px;">Fichas da Solicitação</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Situação do Item</th><th>Ação</th></tr></thead>
+            <thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Status do Acervo</th><th>Situação do Pedido</th><th>Ação</th></tr></thead>
             <tbody>
               ${itens.map(it=>{
                 const f = U.findFicha(it.ficha_id);
@@ -261,6 +277,7 @@ const App = {
                   <td><strong>${f ? f.lote : it.lote_snapshot}</strong></td>
                   <td>${f ? f.codigo_produto : '<span style="color:var(--danger);">Não encontrado</span>'}</td>
                   <td>${f ? f.nome_produto : '-'}</td>
+                  <td>${f ? U.badgeFicha(f.situacao_planilha) : '-'}</td>
                   <td>${U.badgeItem(it.situacao_item)}</td>
                   <td>${getAcaoBtn(it)}</td>
                 </tr>`;
@@ -314,9 +331,22 @@ const App = {
   },
   
   screenFichas(){ 
-    return `<div class="card"><h3>Consulta de Fichas</h3><div class="table-wrap" style="margin-top:16px;"><table><thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Situação</th></tr></thead><tbody>
-      ${Store.get('fichas').map(f=>`<tr><td>${f.lote}</td><td>${f.codigo_produto}</td><td>${f.nome_produto}</td><td>${f.situacao_planilha}</td></tr>`).join('')}
-    </tbody></table></div></div>`; 
+    const user = Auth.current();
+    const isAdmin = user.perfil === 'admin';
+    return `
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-head">
+          <h3>Acervo de Fichas</h3>
+          ${isAdmin ? `
+          <div class="table-actions">
+            <button class="btn btn-secondary btn-sm" id="btn-importar-planilha">📊 Importar Planilha</button>
+            <button class="btn btn-primary btn-sm" id="btn-add-ficha">+ Adicionar Ficha</button>
+          </div>` : ''}
+        </div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Situação</th></tr></thead><tbody>
+      ${Store.get('fichas').map(f=>`<tr><td><strong>${f.lote}</strong></td><td>${f.codigo_produto}</td><td>${f.nome_produto}</td><td>${U.badgeFicha(f.situacao_planilha)}</td></tr>`).join('')}
+    </tbody></table></div>`; 
   },
   
   events: {
@@ -398,7 +428,67 @@ const App = {
         });
         this.state.novaItems = []; U.toast('Solicitação criada com sucesso!','success'); this.navigate('minhas-solicitacoes');
       });
+    },
+
+    'fichas': function() {
+      // Ação para simular importação de planilha
+      document.getElementById('btn-importar-planilha')?.addEventListener('click', () => {
+        U.toast('Conectando à planilha... Lendo dados...', 'info');
+        setTimeout(() => {
+          // Simula a adição de 2 novas fichas via planilha
+          Store.add('fichas', { lote: '99901', codigo_produto: 'PROD-100', nome_produto: 'Parafuso Sextavado Aço Inox', situacao_planilha: 'Arquivada', aba_origem: 'Arquivadas', ultima_consulta: U.todayISO() });
+          Store.add('fichas', { lote: '99902', codigo_produto: 'PROD-310', nome_produto: 'Tubo de PVC 100mm', situacao_planilha: 'Em revisão', aba_origem: 'Em Correção', ultima_consulta: U.todayISO() });
+          U.toast('Planilha importada com sucesso! 2 novas fichas adicionadas.', 'success');
+          this.renderScreen();
+        }, 1500);
+      });
+
+      // Ação para adicionar ficha manual
+      document.getElementById('btn-add-ficha')?.addEventListener('click', () => {
+        const body = `
+          <div class="form-grid">
+            <div class="field"><label>Lote</label><input type="text" id="f-lote" placeholder="Ex: 50001"></div>
+            <div class="field"><label>Código do Produto</label><input type="text" id="f-codigo" placeholder="Ex: PROD-100"></div>
+            <div class="field"><label>Nome do Produto</label><input type="text" id="f-nome" placeholder="Ex: Parafuso de Aço"></div>
+            <div class="field"><label>Situação</label>
+              <select id="f-situacao">
+                <option value="Arquivada">Arquivada</option>
+                <option value="Pendente de FP">Pendente de FP</option>
+                <option value="Pendente de RA">Pendente de RA</option>
+                <option value="Em correção">Em correção</option>
+                <option value="Em revisão">Em revisão</option>
+              </select>
+            </div>
+          </div>
+        `;
+        this.openModal('Adicionar Nova Ficha', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" id="btn-salvar-ficha">Salvar Ficha</button>`);
+        
+        document.getElementById('btn-salvar-ficha').addEventListener('click', () => {
+          const lote = document.getElementById('f-lote').value.trim();
+          const codigo = document.getElementById('f-codigo').value.trim();
+          const nome = document.getElementById('f-nome').value.trim();
+          const situacao = document.getElementById('f-situacao').value;
+          
+          if(!lote || !codigo) { U.toast('Preencha lote e código.', 'error'); return; }
+          
+          Store.add('fichas', { lote, codigo_produto: codigo, nome_produto: nome, situacao_planilha: situacao, aba_origem: (situacao==='Arquivada'?'Arquivadas':'Em Correção'), ultima_consulta: U.todayISO() });
+          this.closeModal();
+          U.toast('Ficha adicionada!', 'success');
+          this.renderScreen();
+        });
+      });
     }
-  }
+  },
+  
+  // Função para abrir modal (necessária para adicionar ficha)
+  openModal(title, body, foot='') {
+    document.body.classList.add('modal-open');
+    const el = document.createElement('div'); el.className = 'modal-overlay';
+    el.innerHTML = `<div class="modal"><div class="modal-head"><h3>${title}</h3><button class="close-x" data-close>×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div>`;
+    document.body.appendChild(el);
+    el.querySelector('[data-close]').addEventListener('click', ()=>this.closeModal());
+    el.addEventListener('click', e=>{ if(e.target===el) this.closeModal(); });
+  },
+  closeModal() { document.body.classList.remove('modal-open'); const m = document.querySelector('.modal-overlay'); if(m) m.remove(); }
 };
 document.addEventListener('DOMContentLoaded', ()=>App.init());
