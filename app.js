@@ -78,7 +78,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.9</div>
+          <div class="sidebar-footer">v3.10</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -131,6 +131,13 @@ const App = {
       return f ? f.lote : it.lote_snapshot;
     });
     return lotes.join(', ');
+  },
+
+  // Função para calcular quantas fichas de uma solicitação já foram entregues
+  getEntreguesCount(solId) {
+    const itens = Store.get('itens_solicitacao').filter(i => i.solicitacao_id === solId);
+    const entregues = itens.filter(i => ['Entregue', 'Devolução Solicitada', 'Devolvido'].includes(i.situacao_item)).length;
+    return `${entregues} / ${itens.length}`;
   },
 
   getLoteFeedback(lote) {
@@ -227,10 +234,19 @@ const App = {
   },
   
   screenSolicitacoes(){
-    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Lotes</th><th>Solicitante</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
+    return `<div class="table-wrap"><table><thead><tr>
+      <th>Número</th>
+      <th>Lotes</th>
+      <th>Entregues</th>
+      <th>Solicitante</th>
+      <th>Data</th>
+      <th>Situação</th>
+      <th>Ações</th>
+    </tr></thead><tbody>
       ${Store.get('solicitacoes').map(s=>`<tr>
         <td><strong>${s.numero}</strong></td>
         <td>${this.getLotesStr(s.id)}</td>
+        <td><span style="font-weight:600; color:var(--primary);">${this.getEntreguesCount(s.id)}</span></td>
         <td>${s.solicitante_nome}</td>
         <td>${U.fmtDate(s.data_criacao)}</td>
         <td>${U.badgeSol(s.situacao)}</td>
@@ -319,11 +335,12 @@ const App = {
   screenMinhasSolicitacoes(){
     const user = Auth.current();
     const sols = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
-    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Lotes</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
+    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Lotes</th><th>Entregues</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
       ${sols.map(s=>`
         <tr>
           <td><strong>${s.numero}</strong></td>
           <td>${this.getLotesStr(s.id)}</td>
+          <td><span style="font-weight:600; color:var(--primary);">${this.getEntreguesCount(s.id)}</span></td>
           <td>${U.fmtDate(s.data_criacao)}</td>
           <td>${U.badgeSol(s.situacao)}</td>
           <td>
@@ -392,7 +409,7 @@ const App = {
           novoSituacao = 'Finalizada';
           U.toast('Todas as fichas foram devolvidas! Solicitação finalizada.', 'success');
         } else if (qtdDevolSolicitada > 0) {
-          novoSituacao = 'Aguardando Confirmação'; // Status diferenciado para quando o João clica em devolver
+          novoSituacao = 'Aguardando Confirmação'; 
           U.toast('Devolução informada! Aguardando conferência do Admin.', 'info');
         } else if (qtdEntregues > 0) {
           if (qtdSeparando > 0 || qtdPendentes > 0) {
@@ -445,7 +462,6 @@ const App = {
     },
 
     'fichas': function() {
-      // Ação para simular importação de planilha
       document.getElementById('btn-importar-planilha')?.addEventListener('click', () => {
         U.toast('Conectando à planilha... Lendo dados...', 'info');
         setTimeout(() => {
@@ -456,7 +472,6 @@ const App = {
         }, 1500);
       });
 
-      // Ação para adicionar ficha manual
       document.getElementById('btn-add-ficha')?.addEventListener('click', () => {
         const body = `
           <div class="form-grid">
@@ -491,7 +506,6 @@ const App = {
         });
       });
 
-      // Lógica para o botão "Editar Status" de cada ficha
       document.querySelectorAll('[data-edit-ficha]').forEach(b => b.addEventListener('click', () => {
         const fichaId = Number(b.dataset.editFicha);
         const ficha = U.findFicha(fichaId);
