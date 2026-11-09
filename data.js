@@ -1,4 +1,4 @@
-const DB_KEY = 'sigef_data_v5'; // Versão atualizada
+const DB_KEY = 'sigef_data_v6';
 function seedData() {
   const iso = d => d.toISOString();
   const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return iso(d); };
@@ -24,19 +24,16 @@ function seedData() {
     id:i+1, lote:f[0], codigo_produto:f[1], nome_produto: produtosMap[f[1]] || 'Produto Padrão', situacao_planilha:f[2], aba_origem:f[3], ultima_consulta:daysAgo(0)
   }));
   
-  // Solicitações para testar todos os status
+  // Status atualizados para "Aguardando Devolução"
   const solicitacoes = [
     { id:1, numero:'SOL-2025-0001', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(2), situacao:'Pendente', observacoes:'Para separar' },
-    { id:2, numero:'SOL-2025-0002', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(3), situacao:'Empréstimo', observacoes:'João está com a ficha' },
-    { id:3, numero:'SOL-2025-0003', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(4), situacao:'Empréstimo', observacoes:'João pediu para devolver' }
+    { id:2, numero:'SOL-2025-0002', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(3), situacao:'Aguardando Devolução', observacoes:'João está com a ficha' },
+    { id:3, numero:'SOL-2025-0003', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(4), situacao:'Aguardando Devolução', observacoes:'João pediu para devolver' }
   ];
 
   const itens_solicitacao = [
-    // Sol 1: Pendente
     { id:1, solicitacao_id:1, ficha_id:1, situacao_item:'Pendente', lote_snapshot:null, codigo_snapshot:null },
-    // Sol 2: Entregue (Pronto para o João clicar em "Informar Devolução")
     { id:2, solicitacao_id:2, ficha_id:2, situacao_item:'Entregue', lote_snapshot:null, codigo_snapshot:null },
-    // Sol 3: Devolução Solicitada (Pronto para o Admin clicar em "Confirmar Recebimento")
     { id:3, solicitacao_id:3, ficha_id:3, situacao_item:'Devolução Solicitada', lote_snapshot:null, codigo_snapshot:null }
   ];
 

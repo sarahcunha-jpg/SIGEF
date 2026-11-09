@@ -10,7 +10,8 @@ const U = {
     setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); }, 3500);
   },
   badgeSol(sit){
-    const map = {'Pendente':'badge-gray','Em Separação':'badge-warning','Empréstimo':'badge-orange','Finalizada':'badge-green'};
+    // Atualizado para refletir a ação do usuário
+    const map = {'Pendente':'badge-gray','Em Separação':'badge-warning','Aguardando Devolução':'badge-orange','Finalizada':'badge-green'};
     return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
   },
   badgeItem(sit){
@@ -69,7 +70,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.5</div>
+          <div class="sidebar-footer">v3.6</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -192,7 +193,7 @@ const App = {
       return `
         <div class="grid grid-3">
           ${this.metricCard('Minhas Solicitações', minhas.length)}
-          ${this.metricCard('Em Andamento', minhas.filter(s=>s.situacao!=='Finalizada').length)}
+          ${this.metricCard('Aguardando Devolução', minhas.filter(s=>s.situacao==='Aguardando Devolução').length)}
           ${this.metricCard('Finalizadas', minhas.filter(s=>s.situacao==='Finalizada').length)}
         </div>
         <div class="section card">
@@ -213,7 +214,6 @@ const App = {
     const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===s.id);
     const user = Auth.current();
     
-    // Lógica dos botões baseada no perfil e status do item
     const getAcaoBtn = (it) => {
       if(user.perfil === 'solicitante') {
         if(it.situacao_item === 'Entregue') return `<button class="btn btn-warning btn-sm" data-acao-item="${it.id}" data-acao="solicitar-devolucao">Informar Devolução</button>`;
@@ -282,7 +282,17 @@ const App = {
     const user = Auth.current();
     const sols = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
     return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
-      ${sols.map(s=>`<tr><td><strong>${s.numero}</strong></td><td>${U.fmtDate(s.data_criacao)}</td><td>${U.badgeSol(s.situacao)}</td><td><button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Ver Detalhes</button></td></tr>`).join('')}
+      ${sols.map(s=>`
+        <tr>
+          <td><strong>${s.numero}</strong></td>
+          <td>${U.fmtDate(s.data_criacao)}</td>
+          <td>${U.badgeSol(s.situacao)}</td>
+          <td>
+            ${s.situacao === 'Aguardando Devolução' 
+              ? `<button class="btn btn-warning btn-sm" data-sol-detail="${s.id}">Devolver Fichas</button>` 
+              : `<button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Ver Detalhes</button>`}
+          </td>
+        </tr>`).join('')}
     </tbody></table></div>`;
   },
   
@@ -306,13 +316,11 @@ const App = {
         const item = Store.get('itens_solicitacao').find(i=>i.id===itemId);
         const solId = item.solicitacao_id;
         
-        // Atualiza o status do item
         if(acao === 'separar') Store.update('itens_solicitacao', itemId, { situacao_item: 'Separando' });
         if(acao === 'entregar') Store.update('itens_solicitacao', itemId, { situacao_item: 'Entregue' });
         if(acao === 'solicitar-devolucao') Store.update('itens_solicitacao', itemId, { situacao_item: 'Devolução Solicitada' });
         if(acao === 'confirmar-devolucao') Store.update('itens_solicitacao', itemId, { situacao_item: 'Devolvido' });
         
-        // Atualiza o status master da solicitação baseado nos itens
         const todosItens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id === solId);
         const qtdPendentes = todosItens.filter(i=>i.situacao_item === 'Pendente').length;
         const qtdSeparando = todosItens.filter(i=>i.situacao_item === 'Separando').length;
@@ -327,10 +335,10 @@ const App = {
           U.toast('Todas as fichas foram devolvidas! Solicitação finalizada.', 'success');
         } else if (qtdEntregues > 0 || qtdDevolSolicitada > 0 || qtdDevolvidos > 0) {
           if (qtdSeparando > 0 || qtdPendentes > 0) {
-             novoSituacao = 'Em Separação'; // Tem coisa entregue mas ainda tem coisa pra separar
+             novoSituacao = 'Em Separação';
              U.toast('Status atualizado.', 'info');
           } else {
-             novoSituacao = 'Empréstimo'; // Tudo foi entregue, mas nem tudo devolvido
+             novoSituacao = 'Aguardando Devolução'; // Termo alterado aqui
              U.toast('Ação registrada.', 'info');
           }
         } else if (qtdSeparando > 0) {
