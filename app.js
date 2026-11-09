@@ -10,11 +10,17 @@ const U = {
     setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); }, 3500);
   },
   badgeSol(sit){
-    const map = {'Pendente':'badge-gray','Em Separação':'badge-warning','Concluída':'badge-green'};
+    const map = {'Pendente':'badge-gray','Em Separação':'badge-warning','Empréstimo':'badge-orange','Finalizada':'badge-green'};
     return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
   },
   badgeItem(sit){
-    const map = {'Pendente':'badge-gray','Separando':'badge-warning','Entregue':'badge-green'};
+    const map = {
+      'Pendente':'badge-gray',
+      'Separando':'badge-warning',
+      'Entregue':'badge-green',
+      'Devolução Solicitada':'badge-orange',
+      'Devolvido':'badge-blue'
+    };
     return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
   },
   findFicha(id){ if(!id) return null; return Store.get('fichas').find(f=>f.id===id); }
@@ -63,7 +69,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.4</div>
+          <div class="sidebar-footer">v3.5</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -128,7 +134,7 @@ const App = {
 
       const solPendentes = sols.filter(s=>s.situacao==='Pendente').length;
       const solSeparacao = sols.filter(s=>s.situacao==='Em Separação').length;
-      const solConcluidas = sols.filter(s=>s.situacao==='Concluída').length;
+      const solConcluidas = sols.filter(s=>s.situacao==='Finalizada').length;
 
       const fArquivadas = fichas.filter(f=>f.situacao_planilha==='Arquivada').length;
       const fCorrecao = fichas.filter(f=>f.situacao_planilha==='Em correção').length;
@@ -141,7 +147,7 @@ const App = {
         <div class="grid grid-3">
           ${this.metricCard('Solicitações Pendentes', solPendentes)}
           ${this.metricCard('Em Separação', solSeparacao)}
-          ${this.metricCard('Concluídas', solConcluidas)}
+          ${this.metricCard('Finalizadas', solConcluidas)}
         </div>
 
         <div class="section card">
@@ -149,8 +155,7 @@ const App = {
           <div class="grid grid-3" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--success);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fArquivadas}</div>
-              <!-- Alterado aqui para Concluídas -->
-              <div style="font-size:13px; color:var(--text-muted);">Concluídas</div>
+              <div style="font-size:13px; color:var(--text-muted);">Concluídas / Arquivadas</div>
             </div>
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fCorrecao}</div>
@@ -187,8 +192,8 @@ const App = {
       return `
         <div class="grid grid-3">
           ${this.metricCard('Minhas Solicitações', minhas.length)}
-          ${this.metricCard('Em Andamento', minhas.filter(s=>s.situacao!=='Concluída').length)}
-          ${this.metricCard('Concluídas', minhas.filter(s=>s.situacao==='Concluída').length)}
+          ${this.metricCard('Em Andamento', minhas.filter(s=>s.situacao!=='Finalizada').length)}
+          ${this.metricCard('Finalizadas', minhas.filter(s=>s.situacao==='Finalizada').length)}
         </div>
         <div class="section card">
           <div class="section-head"><h3>Últimas Solicitações</h3><button class="btn btn-primary btn-sm" data-nav="nova-solicitacao">+ Criar Nova</button></div>
@@ -208,11 +213,20 @@ const App = {
     const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===s.id);
     const user = Auth.current();
     
+    // Lógica dos botões baseada no perfil e status do item
     const getAcaoBtn = (it) => {
-      if(user.perfil !== 'admin') return U.badgeItem(it.situacao_item);
-      if(it.situacao_item === 'Pendente') return `<button class="btn btn-secondary btn-sm" data-acao-item="${it.id}" data-acao="separar">Iniciar Separação</button>`;
-      if(it.situacao_item === 'Separando') return `<button class="btn btn-success btn-sm" data-acao-item="${it.id}" data-acao="entregar">Confirmar Entrega</button>`;
-      return `<span style="color:var(--success);font-weight:600;">✓ Entregue</span>`;
+      if(user.perfil === 'solicitante') {
+        if(it.situacao_item === 'Entregue') return `<button class="btn btn-warning btn-sm" data-acao-item="${it.id}" data-acao="solicitar-devolucao">Informar Devolução</button>`;
+        if(it.situacao_item === 'Devolução Solicitada') return `<span style="color:var(--warning);font-size:12px;font-weight:600;">Aguardando Admin</span>`;
+        if(it.situacao_item === 'Devolvido') return `<span style="color:var(--success);font-weight:600;">✓ Devolvido</span>`;
+        return U.badgeItem(it.situacao_item);
+      } else {
+        if(it.situacao_item === 'Pendente') return `<button class="btn btn-secondary btn-sm" data-acao-item="${it.id}" data-acao="separar">Iniciar Separação</button>`;
+        if(it.situacao_item === 'Separando') return `<button class="btn btn-success btn-sm" data-acao-item="${it.id}" data-acao="entregar">Confirmar Entrega</button>`;
+        if(it.situacao_item === 'Devolução Solicitada') return `<button class="btn btn-primary btn-sm" data-acao-item="${it.id}" data-acao="confirmar-devolucao">Confirmar Recebimento</button>`;
+        if(it.situacao_item === 'Devolvido') return `<span style="color:var(--success);font-weight:600;">✓ Devolvido</span>`;
+        return U.badgeItem(it.situacao_item);
+      }
     };
 
     return `<button class="btn btn-secondary btn-sm" data-nav="${user.perfil==='admin'?'solicitacoes':'minhas-solicitacoes'}">← Voltar</button>
@@ -223,7 +237,7 @@ const App = {
         <h3 style="margin-bottom:16px;">Fichas da Solicitação</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Situação do Item</th>${user.perfil==='admin' ? '<th>Ação</th>' : ''}</tr></thead>
+            <thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Situação do Item</th><th>Ação</th></tr></thead>
             <tbody>
               ${itens.map(it=>{
                 const f = U.findFicha(it.ficha_id);
@@ -232,7 +246,7 @@ const App = {
                   <td>${f ? f.codigo_produto : '<span style="color:var(--danger);">Não encontrado</span>'}</td>
                   <td>${f ? f.nome_produto : '-'}</td>
                   <td>${U.badgeItem(it.situacao_item)}</td>
-                  ${user.perfil==='admin' ? `<td>${getAcaoBtn(it)}</td>` : ''}
+                  <td>${getAcaoBtn(it)}</td>
                 </tr>`;
               }).join('')}
             </tbody>
@@ -292,23 +306,39 @@ const App = {
         const item = Store.get('itens_solicitacao').find(i=>i.id===itemId);
         const solId = item.solicitacao_id;
         
+        // Atualiza o status do item
         if(acao === 'separar') Store.update('itens_solicitacao', itemId, { situacao_item: 'Separando' });
         if(acao === 'entregar') Store.update('itens_solicitacao', itemId, { situacao_item: 'Entregue' });
+        if(acao === 'solicitar-devolucao') Store.update('itens_solicitacao', itemId, { situacao_item: 'Devolução Solicitada' });
+        if(acao === 'confirmar-devolucao') Store.update('itens_solicitacao', itemId, { situacao_item: 'Devolvido' });
         
+        // Atualiza o status master da solicitação baseado nos itens
         const todosItens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id === solId);
-        const qtdEntregues = todosItens.filter(i=>i.situacao_item === 'Entregue').length;
+        const qtdPendentes = todosItens.filter(i=>i.situacao_item === 'Pendente').length;
         const qtdSeparando = todosItens.filter(i=>i.situacao_item === 'Separando').length;
+        const qtdEntregues = todosItens.filter(i=>i.situacao_item === 'Entregue').length;
+        const qtdDevolSolicitada = todosItens.filter(i=>i.situacao_item === 'Devolução Solicitada').length;
+        const qtdDevolvidos = todosItens.filter(i=>i.situacao_item === 'Devolvido').length;
         
-        if(qtdEntregues === todosItens.length) {
-          Store.update('solicitacoes', solId, { situacao: 'Concluída' });
-          U.toast('Todas as fichas entregues! Solicitação concluída.', 'success');
-        } else if(qtdSeparando > 0 || qtdEntregues > 0) {
-          Store.update('solicitacoes', solId, { situacao: 'Em Separação' });
-          U.toast('Status atualizado.', 'info');
-        } else {
-          Store.update('solicitacoes', solId, { situacao: 'Pendente' });
+        let novoSituacao = 'Pendente';
+        
+        if (qtdDevolvidos === todosItens.length) {
+          novoSituacao = 'Finalizada';
+          U.toast('Todas as fichas foram devolvidas! Solicitação finalizada.', 'success');
+        } else if (qtdEntregues > 0 || qtdDevolSolicitada > 0 || qtdDevolvidos > 0) {
+          if (qtdSeparando > 0 || qtdPendentes > 0) {
+             novoSituacao = 'Em Separação'; // Tem coisa entregue mas ainda tem coisa pra separar
+             U.toast('Status atualizado.', 'info');
+          } else {
+             novoSituacao = 'Empréstimo'; // Tudo foi entregue, mas nem tudo devolvido
+             U.toast('Ação registrada.', 'info');
+          }
+        } else if (qtdSeparando > 0) {
+          novoSituacao = 'Em Separação';
+          U.toast('Separação iniciada.', 'info');
         }
         
+        Store.update('solicitacoes', solId, { situacao: novoSituacao });
         this.renderScreen(); 
       }));
     },

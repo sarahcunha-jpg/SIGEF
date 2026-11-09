@@ -1,4 +1,4 @@
-const DB_KEY = 'sigef_data_v4'; // Versão atualizada para limpar o cache
+const DB_KEY = 'sigef_data_v5'; // Versão atualizada
 function seedData() {
   const iso = d => d.toISOString();
   const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return iso(d); };
@@ -8,7 +8,6 @@ function seedData() {
     { id:2, nome:'João Silva', email:'joao@empresa.com', senha:'123456', setor:'Produção', perfil:'solicitante', ativo:true }
   ];
 
-  // Dicionário de nomes de produtos baseados no código
   const produtosMap = {
     'PROD-100': 'Parafuso Sextavado Aço Inox',
     'PROD-205': 'Chapa de Alumínio 2mm',
@@ -16,29 +15,29 @@ function seedData() {
   };
 
   const fichasRaw = [
-    ['45821','PROD-100','Arquivada','Arquivadas'],['45822','PROD-100','Pendente de FP','Arquivadas'],
-    ['45823','PROD-310','Em revisão','Em Correção'],['45824','PROD-100','Arquivada','Arquivadas'],
-    ['45825','PROD-205','Arquivada','Arquivadas'],['45826','PROD-310','Pendente de RA','Arquivadas'],
-    ['45827','PROD-100','Arquivada','Arquivadas'],['45828','PROD-205','Em correção','Em Correção']
+    ['45821','PROD-100','Arquivada','Arquivadas'],['45822','PROD-100','Arquivada','Arquivadas'],
+    ['45823','PROD-310','Arquivada','Arquivadas'],['45824','PROD-100','Arquivada','Arquivadas'],
+    ['45825','PROD-205','Arquivada','Arquivadas'],['45826','PROD-310','Arquivada','Arquivadas']
   ];
   
   const fichas = fichasRaw.map((f,i)=>({
-    id:i+1, 
-    lote:f[0], 
-    codigo_produto:f[1], 
-    nome_produto: produtosMap[f[1]] || 'Produto Padrão', // <-- Adicionado o nome
-    situacao_planilha:f[2], 
-    aba_origem:f[3], 
-    ultima_consulta:daysAgo(0)
+    id:i+1, lote:f[0], codigo_produto:f[1], nome_produto: produtosMap[f[1]] || 'Produto Padrão', situacao_planilha:f[2], aba_origem:f[3], ultima_consulta:daysAgo(0)
   }));
   
+  // Solicitações para testar todos os status
   const solicitacoes = [
-    { id:1, numero:'SOL-2025-0001', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(2), situacao:'Pendente', observacoes:'' }
+    { id:1, numero:'SOL-2025-0001', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(2), situacao:'Pendente', observacoes:'Para separar' },
+    { id:2, numero:'SOL-2025-0002', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(3), situacao:'Empréstimo', observacoes:'João está com a ficha' },
+    { id:3, numero:'SOL-2025-0003', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(4), situacao:'Empréstimo', observacoes:'João pediu para devolver' }
   ];
 
   const itens_solicitacao = [
+    // Sol 1: Pendente
     { id:1, solicitacao_id:1, ficha_id:1, situacao_item:'Pendente', lote_snapshot:null, codigo_snapshot:null },
-    { id:2, solicitacao_id:1, ficha_id:4, situacao_item:'Pendente', lote_snapshot:null, codigo_snapshot:null }
+    // Sol 2: Entregue (Pronto para o João clicar em "Informar Devolução")
+    { id:2, solicitacao_id:2, ficha_id:2, situacao_item:'Entregue', lote_snapshot:null, codigo_snapshot:null },
+    // Sol 3: Devolução Solicitada (Pronto para o Admin clicar em "Confirmar Recebimento")
+    { id:3, solicitacao_id:3, ficha_id:3, situacao_item:'Devolução Solicitada', lote_snapshot:null, codigo_snapshot:null }
   ];
 
   return { usuarios, fichas, solicitacoes, itens_solicitacao };
