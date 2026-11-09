@@ -43,12 +43,16 @@ const App = {
           <div class="field"><label>Senha</label><input type="password" id="login-senha" required placeholder="••••••••"></div>
           <button type="submit" class="btn btn-primary btn-block">Entrar</button>
         </form>
-        <div class="demo-box"><strong>Demo:</strong> admin@sigef.com / admin123</div>
+        <div class="demo-box">
+          <strong>Para testar os dois lados:</strong><br><br>
+          👨‍💼 <strong>Admin:</strong> admin@sigef.com / admin123<br>
+          👤 <strong>João (Solicitante):</strong> joao@empresa.com / 123456
+        </div>
       </div></div>`;
     document.getElementById('login-form').addEventListener('submit', e => {
       e.preventDefault();
       const u = Auth.login(document.getElementById('login-email').value.trim(), document.getElementById('login-senha').value);
-      if(u){ this.renderShell(); this.navigate('dashboard'); } 
+      if(u){ U.toast('Bem-vindo, '+u.nome,'success'); this.renderShell(); this.navigate('dashboard'); } 
       else U.toast('Credenciais inválidas.','error');
     });
   },
@@ -59,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v2.0</div>
+          <div class="sidebar-footer">v3.0</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -79,15 +83,23 @@ const App = {
   },
   renderNav(){
     const user = Auth.current(); const admin = user.perfil==='admin';
-    const items = admin ? [
-      ['dashboard','Painel','📊'],['solicitacoes','Solicitações','📥'],['fichas','Consulta','🗂️'],
-      ['emprestimos','Empréstimos','🔄'],['historico','Histórico','🕓'],['usuarios','Usuários','👥']
-    ] : [
-      ['dashboard','Meu Painel','📊'],['nova-solicitacao','Nova Solicitação','➕'],
+    
+    // Menu Admin
+    const adminItems = [
+      ['dashboard','Painel','📊'],['solicitacoes','Gerenciar Solicitações','📥'],['fichas','Consulta','🗂️']
+    ];
+    
+    // Menu Solicitante
+    const userItems = [
+      ['dashboard','Meu Painel','📊'],
+      ['nova-solicitacao','Nova Solicitação','➕'],
       ['minhas-solicitacoes','Minhas Solicitações','📥']
     ];
+
+    const items = admin ? adminItems : userItems;
     const nav = document.getElementById('nav');
     nav.innerHTML = items.map(([key,label,ico]) => `<div class="nav-item ${this.state.screen===key?'active':''}" data-screen="${key}"><span class="ico">${ico}</span><span>${U.esc(label)}</span></div>`).join('');
+    
     nav.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', () => { this.state.sidebarOpen=false; this.navigate(el.dataset.screen); }));
   },
   navigate(screen, params={}, updateHash=true){
@@ -97,57 +109,61 @@ const App = {
   },
   renderScreen(){
     const user = Auth.current(); if(!user) return;
-    const titles = {dashboard: 'Painel',solicitacoes:'Solicitações',fichas:'Consulta',emprestimos:'Empréstimos',historico:'Histórico',usuarios:'Usuários','nova-solicitacao':'Nova Solicitação','minhas-solicitacoes':'Minhas Solicitações','solicitacao-detalhe':'Detalhe da Solicitação'};
+    const titles = {dashboard: 'Painel',solicitacoes:'Gerenciar Solicitações',fichas:'Consulta de Fichas','nova-solicitacao':'Nova Solicitação','minhas-solicitacoes':'Minhas Solicitações','solicitacao-detalhe':'Detalhe da Solicitação'};
     document.getElementById('page-title').textContent = titles[this.state.screen] || 'SIGEF';
     const el = document.getElementById('content');
     try { el.innerHTML = this.screenHTML(this.state.screen, this.state.params); } catch(e){ el.innerHTML = `<div class="card">Erro: ${U.esc(e.message)}</div>`; }
     const fn = this.events[this.state.screen]; if(fn) fn.call(this);
   },
   screenHTML(screen, params){
-    const map = {dashboard:()=>this.screenDashboard(),solicitacoes:()=>this.screenSolicitacoes(),'solicitacao-detalhe':()=>this.screenSolicitacaoDetalhe(params),fichas:()=>this.screenFichas(),emprestimos:()=>this.screenEmprestimos(),historico:()=>this.screenHistorico(),usuarios:()=>this.screenUsuarios(),'nova-solicitacao':()=>this.screenNovaSolicitacao(),'minhas-solicitacoes':()=>this.screenMinhasSolicitacoes()};
+    const map = {dashboard:()=>this.screenDashboard(),solicitacoes:()=>this.screenSolicitacoes(),'solicitacao-detalhe':()=>this.screenSolicitacaoDetalhe(params),fichas:()=>this.screenFichas(),'nova-solicitacao':()=>this.screenNovaSolicitacao(),'minhas-solicitacoes':()=>this.screenMinhasSolicitacoes()};
     return (map[screen]||(()=>'<div class="card">Tela não encontrada.</div>'))();
   },
   metricCard(label, value){ return `<div class="card metric"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
-  screenDashboard(){ return Auth.current().perfil==='admin' ? this.dashboardAdmin() : this.dashboardSolicitante(); },
-  dashboardAdmin(){
-    const sols = Store.get('solicitacoes'), emps = Store.get('emprestimos');
-    return `
-      <div class="grid grid-4">
-        ${this.metricCard('Novas Solicitações', sols.filter(s=>s.situacao==='Pendente').length)}
-        ${this.metricCard('Em Separação', sols.filter(s=>s.situacao==='Em Separação').length)}
-        ${this.metricCard('Concluídas', sols.filter(s=>s.situacao==='Concluída').length)}
-        ${this.metricCard('Fichas Emprestadas', emps.filter(e=>e.status==='Emprestada').length)}
-      </div>
-      <div class="section card">
-        <div class="section-head"><h3>Ações Rápidas</h3></div>
-        <div class="table-actions">
-          <button class="btn btn-primary" data-nav="solicitacoes">Gerenciar Solicitações</button>
-          <button class="btn btn-secondary" data-nav="fichas">Consultar Fichas</button>
-        </div>
-      </div>`;
-  },
-  dashboardSolicitante(){
+  
+  screenDashboard(){ 
     const user = Auth.current();
-    const minhas = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
-    return `<div class="grid grid-4">
-      ${this.metricCard('Minhas Solicitações', minhas.length)}
-      ${this.metricCard('Pendentes', minhas.filter(s=>s.situacao!=='Concluída').length)}
-      ${this.metricCard('Concluídas', minhas.filter(s=>s.situacao==='Concluída').length)}
-    </div>
-    <div class="section card">
-      <div class="section-head"><h3>Últimas Solicitações</h3><button class="btn btn-primary btn-sm" data-nav="nova-solicitacao">+ Nova</button></div>
-      ${minhas.slice(0,5).map(s=>`<div style="padding:12px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; cursor:pointer;" data-sol-detail="${s.id}"><strong>${s.numero}</strong> ${U.badgeSol(s.situacao)}</div>`).join('') || '<div class="table-empty">Nenhuma.</div>'}
-    </div>`;
+    if(user.perfil === 'admin') {
+      const sols = Store.get('solicitacoes');
+      return `
+        <div class="grid grid-4">
+          ${this.metricCard('Novas (Pendentes)', sols.filter(s=>s.situacao==='Pendente').length)}
+          ${this.metricCard('Em Separação', sols.filter(s=>s.situacao==='Em Separação').length)}
+          ${this.metricCard('Concluídas', sols.filter(s=>s.situacao==='Concluída').length)}
+        </div>
+        <div class="section card">
+          <div class="section-head"><h3>Ações do Administrador</h3></div>
+          <div class="table-actions">
+            <button class="btn btn-primary" data-nav="solicitacoes">Abrir Fila de Solicitações</button>
+          </div>
+        </div>`;
+    } else {
+      const minhas = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
+      return `
+        <div class="grid grid-4">
+          ${this.metricCard('Minhas Solicitações', minhas.length)}
+          ${this.metricCard('Aguardando', minhas.filter(s=>s.situacao!=='Concluída').length)}
+          ${this.metricCard('Concluídas', minhas.filter(s=>s.situacao==='Concluída').length)}
+        </div>
+        <div class="section card">
+          <div class="section-head"><h3>Últimas Solicitações</h3><button class="btn btn-primary btn-sm" data-nav="nova-solicitacao">+ Criar Nova</button></div>
+          ${minhas.slice(0,5).map(s=>`<div style="padding:12px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; cursor:pointer;" data-sol-detail="${s.id}"><strong>${s.numero}</strong> ${U.badgeSol(s.situacao)}</div>`).join('') || '<div class="table-empty">Nenhuma solicitação criada.</div>'}
+        </div>`;
+    }
   },
+  
   screenSolicitacoes(){
-    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Solicitante</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>${Store.get('solicitacoes').map(s=>`<tr><td><strong>${s.numero}</strong></td><td>${s.solicitante_nome}</td><td>${U.fmtDate(s.data_criacao)}</td><td>${U.badgeSol(s.situacao)}</td><td><button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Abrir</button></td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Solicitante</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
+      ${Store.get('solicitacoes').map(s=>`<tr><td><strong>${s.numero}</strong></td><td>${s.solicitante_nome}</td><td>${U.fmtDate(s.data_criacao)}</td><td>${U.badgeSol(s.situacao)}</td><td><button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Abrir</button></td></tr>`).join('')}
+    </tbody></table></div>`;
   },
+  
   screenSolicitacaoDetalhe(params){
     const s = Store.get('solicitacoes').find(x=>x.id===Number(params.id)); if(!s) return '<div class="card">Não encontrada.</div>';
     const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===s.id);
     const user = Auth.current();
     
-    // Renderiza os botões de ação de acordo com o status do item
+    // Renderiza os botões de ação APENAS para o admin
     const getAcaoBtn = (it) => {
       if(user.perfil !== 'admin') return U.badgeItem(it.situacao_item);
       if(it.situacao_item === 'Pendente') return `<button class="btn btn-secondary btn-sm" data-acao-item="${it.id}" data-acao="separar">Iniciar Separação</button>`;
@@ -155,7 +171,7 @@ const App = {
       return `<span style="color:var(--success);font-weight:600;">✓ Entregue</span>`;
     };
 
-    return `<button class="btn btn-secondary btn-sm" data-nav="solicitacoes">← Voltar</button>
+    return `<button class="btn btn-secondary btn-sm" data-nav="${user.perfil==='admin'?'solicitacoes':'minhas-solicitacoes'}">← Voltar</button>
       <div class="card" style="margin-top:20px;">
         <div class="section-head"><h2>${s.numero}</h2>${U.badgeSol(s.situacao)}</div>
         <p style="color:var(--text-muted);margin-bottom:20px;">Solicitante: <strong>${s.solicitante_nome}</strong> | Setor: ${s.setor} | Data: ${U.fmtDate(s.data_criacao)}</p>
@@ -163,15 +179,15 @@ const App = {
         <h3 style="margin-bottom:16px;">Fichas da Solicitação</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Lote</th><th>Código</th><th>Situação do Item</th><th>Ação</th></tr></thead>
+            <thead><tr><th>Lote</th><th>Código</th><th>Situação do Item</th>${user.perfil==='admin' ? '<th>Ação</th>' : ''}</tr></thead>
             <tbody>
               ${itens.map(it=>{
                 const f = U.findFicha(it.ficha_id);
                 return `<tr>
-                  <td><strong>${f.lote}</strong></td>
-                  <td>${f.codigo_produto}</td>
+                  <td><strong>${f ? f.lote : it.lote_snapshot}</strong></td>
+                  <td>${f ? f.codigo_produto : '-'}</td>
                   <td>${U.badgeItem(it.situacao_item)}</td>
-                  <td>${getAcaoBtn(it)}</td>
+                  ${user.perfil==='admin' ? `<td>${getAcaoBtn(it)}</td>` : ''}
                 </tr>`;
               }).join('')}
             </tbody>
@@ -179,6 +195,7 @@ const App = {
         </div>
       </div>`;
   },
+  
   screenNovaSolicitacao(){
     const items = this.state.novaItems || [];
     return `<div class="card">
@@ -196,15 +213,16 @@ const App = {
       </div>
     </div>`;
   },
+  
   screenMinhasSolicitacoes(){
     const user = Auth.current();
     const sols = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
-    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>${sols.map(s=>`<tr><td><strong>${s.numero}</strong></td><td>${U.fmtDate(s.data_criacao)}</td><td>${U.badgeSol(s.situacao)}</td><td><button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Ver Detalhes</button></td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
+      ${sols.map(s=>`<tr><td><strong>${s.numero}</strong></td><td>${U.fmtDate(s.data_criacao)}</td><td>${U.badgeSol(s.situacao)}</td><td><button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Ver Detalhes</button></td></tr>`).join('')}
+    </tbody></table></div>`;
   },
+  
   screenFichas(){ return `<div class="card"><h3>Consulta de Fichas</h3><div class="table-wrap" style="margin-top:16px;"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th></tr></thead><tbody>${Store.get('fichas').map(f=>`<tr><td>${f.lote}</td><td>${f.codigo_produto}</td><td>${f.situacao_planilha}</td></tr>`).join('')}</tbody></table></div></div>`; },
-  screenEmprestimos(){ return `<div class="card"><h3>Empréstimos Externos</h3><p style="color:var(--text-muted);margin-top:8px;">Controle de fichas que saíram do setor.</p></div>`; },
-  screenHistorico(){ return `<div class="card"><h3>Histórico Recente</h3><p style="color:var(--text-muted);margin-top:8px;">Nenhuma movimentação registrada.</p></div>`; },
-  screenUsuarios(){ return `<div class="card"><h3>Usuários</h3><p style="color:var(--text-muted);margin-top:8px;">Gestão de usuários do sistema.</p></div>`; },
   
   events: {
     dashboard: function(){ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); },
@@ -214,20 +232,17 @@ const App = {
     'solicitacao-detalhe': function(){ 
       document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); 
       
-      // AQUI ESTÁ A NOVA LÓGICA: Botões de ação direto na tabela
+      // Lógica de separação e entrega (Apenas Admin tem esses botões no HTML)
       document.querySelectorAll('[data-acao-item]').forEach(b=>b.addEventListener('click', ()=>{
         const itemId = Number(b.dataset.acaoItem);
         const acao = b.dataset.acao;
         const item = Store.get('itens_solicitacao').find(i=>i.id===itemId);
         const solId = item.solicitacao_id;
         
-        if(acao === 'separar') {
-          Store.update('itens_solicitacao', itemId, { situacao_item: 'Separando' });
-        } else if(acao === 'entregar') {
-          Store.update('itens_solicitacao', itemId, { situacao_item: 'Entregue' });
-        }
+        if(acao === 'separar') Store.update('itens_solicitacao', itemId, { situacao_item: 'Separando' });
+        if(acao === 'entregar') Store.update('itens_solicitacao', itemId, { situacao_item: 'Entregue' });
         
-        // Atualiza o status da solicitação com base nos itens
+        // Atualiza o status master da solicitação
         const todosItens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id === solId);
         const qtdEntregues = todosItens.filter(i=>i.situacao_item === 'Entregue').length;
         const qtdSeparando = todosItens.filter(i=>i.situacao_item === 'Separando').length;
@@ -237,12 +252,12 @@ const App = {
           U.toast('Todas as fichas entregues! Solicitação concluída.', 'success');
         } else if(qtdSeparando > 0 || qtdEntregues > 0) {
           Store.update('solicitacoes', solId, { situacao: 'Em Separação' });
-          U.toast('Status do item atualizado.', 'info');
+          U.toast('Status atualizado.', 'info');
         } else {
           Store.update('solicitacoes', solId, { situacao: 'Pendente' });
         }
         
-        this.renderScreen(); // Recarrega a tela atual
+        this.renderScreen(); 
       }));
     },
     
@@ -261,7 +276,7 @@ const App = {
           const f = Store.get('fichas').find(f => f.lote === it.lote); 
           Store.add('itens_solicitacao', { solicitacao_id: nova.id, ficha_id: f ? f.id : null, situacao_item: 'Pendente', lote_snapshot: f ? null : it.lote, codigo_snapshot: null }); 
         });
-        this.state.novaItems = []; U.toast('Solicitação criada!','success'); this.navigate('minhas-solicitacoes');
+        this.state.novaItems = []; U.toast('Solicitação criada com sucesso!','success'); this.navigate('minhas-solicitacoes');
       });
     }
   }
