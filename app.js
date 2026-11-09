@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.12</div>
+          <div class="sidebar-footer">v3.13</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -143,7 +143,6 @@ const App = {
       const fichas = Store.get('fichas');
       const itens = Store.get('itens_solicitacao');
 
-      // NOVOS CARDS
       const qtdFichasEntregues = itens.filter(i => i.situacao_item === 'Entregue').length;
       const qtdAguardandoConfirmacao = itens.filter(i => i.situacao_item === 'Devolução Solicitada').length;
       const qtdFichasDevolvidas = itens.filter(i => i.situacao_item === 'Devolvido').length;
@@ -169,7 +168,8 @@ const App = {
           <div class="grid grid-3" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--success);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fArquivadas}</div>
-              <div style="font-size:13px; color:var(--text-muted);">Concluídas / Arquivadas</div>
+              <!-- Alterado aqui para apenas Arquivadas -->
+              <div style="font-size:13px; color:var(--text-muted);">Arquivadas</div>
             </div>
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fCorrecao}</div>
