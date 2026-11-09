@@ -1,4 +1,4 @@
-const DB_KEY = 'sigef_data_v6';
+const DB_KEY = 'sigef_data_v7';
 function seedData() {
   const iso = d => d.toISOString();
   const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return iso(d); };
@@ -17,24 +17,30 @@ function seedData() {
   const fichasRaw = [
     ['45821','PROD-100','Arquivada','Arquivadas'],['45822','PROD-100','Arquivada','Arquivadas'],
     ['45823','PROD-310','Arquivada','Arquivadas'],['45824','PROD-100','Arquivada','Arquivadas'],
-    ['45825','PROD-205','Arquivada','Arquivadas'],['45826','PROD-310','Arquivada','Arquivadas']
+    ['45825','PROD-205','Arquivada','Arquivadas'],['45826','PROD-310','Arquivada','Arquivadas'],
+    ['45827','PROD-100','Arquivada','Arquivadas'],['45828','PROD-205','Arquivada','Arquivadas']
   ];
   
   const fichas = fichasRaw.map((f,i)=>({
     id:i+1, lote:f[0], codigo_produto:f[1], nome_produto: produtosMap[f[1]] || 'Produto Padrão', situacao_planilha:f[2], aba_origem:f[3], ultima_consulta:daysAgo(0)
   }));
   
-  // Status atualizados para "Aguardando Devolução"
   const solicitacoes = [
-    { id:1, numero:'SOL-2025-0001', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(2), situacao:'Pendente', observacoes:'Para separar' },
-    { id:2, numero:'SOL-2025-0002', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(3), situacao:'Aguardando Devolução', observacoes:'João está com a ficha' },
-    { id:3, numero:'SOL-2025-0003', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(4), situacao:'Aguardando Devolução', observacoes:'João pediu para devolver' }
+    { id:1, numero:'SOL-2025-0001', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(2), situacao:'Pendente', observacoes:'' },
+    // Solicitação com 3 itens agrupados
+    { id:2, numero:'SOL-2025-0002', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(3), situacao:'Aguardando Devolução', observacoes:'' },
+    { id:3, numero:'SOL-2025-0003', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(4), situacao:'Aguardando Devolução', observacoes:'' }
   ];
 
   const itens_solicitacao = [
+    // Sol 1
     { id:1, solicitacao_id:1, ficha_id:1, situacao_item:'Pendente', lote_snapshot:null, codigo_snapshot:null },
+    // Sol 2 (3 itens na mesma solicitação, prontos para João devolver)
     { id:2, solicitacao_id:2, ficha_id:2, situacao_item:'Entregue', lote_snapshot:null, codigo_snapshot:null },
-    { id:3, solicitacao_id:3, ficha_id:3, situacao_item:'Devolução Solicitada', lote_snapshot:null, codigo_snapshot:null }
+    { id:3, solicitacao_id:2, ficha_id:3, situacao_item:'Entregue', lote_snapshot:null, codigo_snapshot:null },
+    { id:4, solicitacao_id:2, ficha_id:4, situacao_item:'Entregue', lote_snapshot:null, codigo_snapshot:null },
+    // Sol 3 (João já clicou em devolver, Admin precisa confirmar)
+    { id:5, solicitacao_id:3, ficha_id:5, situacao_item:'Devolução Solicitada', lote_snapshot:null, codigo_snapshot:null }
   ];
 
   return { usuarios, fichas, solicitacoes, itens_solicitacao };

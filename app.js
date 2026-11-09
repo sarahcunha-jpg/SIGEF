@@ -10,7 +10,6 @@ const U = {
     setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); }, 3500);
   },
   badgeSol(sit){
-    // Atualizado para refletir a ação do usuário
     const map = {'Pendente':'badge-gray','Em Separação':'badge-warning','Aguardando Devolução':'badge-orange','Finalizada':'badge-green'};
     return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
   },
@@ -70,7 +69,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.6</div>
+          <div class="sidebar-footer">v3.7</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -116,6 +115,16 @@ const App = {
   },
   metricCard(label, value){ return `<div class="card metric"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
   
+  // Função auxiliar para pegar os lotes de uma solicitação
+  getLotesStr(solId) {
+    const itens = Store.get('itens_solicitacao').filter(i => i.solicitacao_id === solId);
+    const lotes = itens.map(it => {
+      const f = U.findFicha(it.ficha_id);
+      return f ? f.lote : it.lote_snapshot;
+    });
+    return lotes.join(', ');
+  },
+
   getLoteFeedback(lote) {
     if(!lote) return '';
     const f = Store.get('fichas').find(x => x.lote === lote);
@@ -204,8 +213,15 @@ const App = {
   },
   
   screenSolicitacoes(){
-    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Solicitante</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
-      ${Store.get('solicitacoes').map(s=>`<tr><td><strong>${s.numero}</strong></td><td>${s.solicitante_nome}</td><td>${U.fmtDate(s.data_criacao)}</td><td>${U.badgeSol(s.situacao)}</td><td><button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Abrir</button></td></tr>`).join('')}
+    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Lotes</th><th>Solicitante</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
+      ${Store.get('solicitacoes').map(s=>`<tr>
+        <td><strong>${s.numero}</strong></td>
+        <td>${this.getLotesStr(s.id)}</td>
+        <td>${s.solicitante_nome}</td>
+        <td>${U.fmtDate(s.data_criacao)}</td>
+        <td>${U.badgeSol(s.situacao)}</td>
+        <td><button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Abrir</button></td>
+      </tr>`).join('')}
     </tbody></table></div>`;
   },
   
@@ -217,7 +233,7 @@ const App = {
     const getAcaoBtn = (it) => {
       if(user.perfil === 'solicitante') {
         if(it.situacao_item === 'Entregue') return `<button class="btn btn-warning btn-sm" data-acao-item="${it.id}" data-acao="solicitar-devolucao">Informar Devolução</button>`;
-        if(it.situacao_item === 'Devolução Solicitada') return `<span style="color:var(--warning);font-size:12px;font-weight:600;">Aguardando Admin</span>`;
+        if(it.situacao_item === 'Devolução Solicitada') return `<span class="badge badge-orange" style="font-size:11px;">Aguardando Retorno</span>`;
         if(it.situacao_item === 'Devolvido') return `<span style="color:var(--success);font-weight:600;">✓ Devolvido</span>`;
         return U.badgeItem(it.situacao_item);
       } else {
@@ -259,7 +275,7 @@ const App = {
     const items = this.state.novaItems || [];
     return `<div class="card">
       <h3>Nova solicitação</h3>
-      <p style="color:var(--text-muted);margin:8px 0 20px;">Informe os lotes que você precisa. O sistema mostrará o produto para você confirmar.</p>
+      <p style="color:var(--text-muted);margin:8px 0 20px;">Adicione quantos lotes precisar. Todos serão agrupados nesta mesma solicitação.</p>
       <div id="nova-itens">${items.map((it,i)=>`
         <div class="item-row" data-idx="${i}" style="display:flex; flex-direction:column; gap:4px; margin-bottom:16px;">
           <div style="display:flex; gap:12px;">
@@ -271,7 +287,7 @@ const App = {
           </div>
         </div>`).join('')}
       </div>
-      <button class="btn btn-secondary btn-sm" id="btn-add-item" style="margin-top:12px;">+ Adicionar Lote</button>
+      <button class="btn btn-secondary btn-sm" id="btn-add-item" style="margin-top:12px;">+ Adicionar outro Lote</button>
       <div class="form-actions" style="margin-top:24px;">
         <button class="btn btn-primary" id="btn-enviar-sol">Enviar Solicitação</button>
       </div>
@@ -281,10 +297,11 @@ const App = {
   screenMinhasSolicitacoes(){
     const user = Auth.current();
     const sols = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
-    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
+    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Lotes</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
       ${sols.map(s=>`
         <tr>
           <td><strong>${s.numero}</strong></td>
+          <td>${this.getLotesStr(s.id)}</td>
           <td>${U.fmtDate(s.data_criacao)}</td>
           <td>${U.badgeSol(s.situacao)}</td>
           <td>
@@ -338,7 +355,7 @@ const App = {
              novoSituacao = 'Em Separação';
              U.toast('Status atualizado.', 'info');
           } else {
-             novoSituacao = 'Aguardando Devolução'; // Termo alterado aqui
+             novoSituacao = 'Aguardando Devolução';
              U.toast('Ação registrada.', 'info');
           }
         } else if (qtdSeparando > 0) {
