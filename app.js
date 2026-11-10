@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.13</div>
+          <div class="sidebar-footer">v3.14</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -136,6 +136,25 @@ const App = {
     }
   },
 
+  atualizarStatusSolicitacao(solId) {
+    const todosItens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id === solId);
+    const qtdPendentes = todosItens.filter(i=>i.situacao_item === 'Pendente').length;
+    const qtdSeparando = todosItens.filter(i=>i.situacao_item === 'Separando').length;
+    const qtdEntregues = todosItens.filter(i=>i.situacao_item === 'Entregue').length;
+    const qtdDevolSolicitada = todosItens.filter(i=>i.situacao_item === 'Devolução Solicitada').length;
+    const qtdDevolvidos = todosItens.filter(i=>i.situacao_item === 'Devolvido').length;
+    
+    let novoSituacao = 'Pendente';
+    if (qtdDevolvidos === todosItens.length) { novoSituacao = 'Finalizada'; } 
+    else if (qtdDevolSolicitada > 0) { novoSituacao = 'Aguardando Confirmação'; } 
+    else if (qtdEntregues > 0) {
+      if (qtdSeparando > 0 || qtdPendentes > 0) { novoSituacao = 'Em Separação'; } 
+      else { novoSituacao = 'Aguardando Devolução'; }
+    } else if (qtdSeparando > 0) { novoSituacao = 'Em Separação'; }
+    
+    Store.update('solicitacoes', solId, { situacao: novoSituacao });
+  },
+
   screenDashboard(){ 
     const user = Auth.current();
     if(user.perfil === 'admin') {
@@ -168,7 +187,6 @@ const App = {
           <div class="grid grid-3" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--success);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fArquivadas}</div>
-              <!-- Alterado aqui para apenas Arquivadas -->
               <div style="font-size:13px; color:var(--text-muted);">Arquivadas</div>
             </div>
             <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
@@ -249,7 +267,14 @@ const App = {
         return U.badgeItem(it.situacao_item);
       } else {
         if(it.situacao_item === 'Pendente') return `<button class="btn btn-secondary btn-sm" data-acao-item="${it.id}" data-acao="separar">Iniciar Separação</button>`;
-        if(it.situacao_item === 'Separando') return `<button class="btn btn-success btn-sm" data-acao-item="${it.id}" data-acao="entregar">Confirmar Entrega</button>`;
+        
+        if(it.situacao_item === 'Separando') {
+          if (isFichaIndisponivel) {
+            return `<button class="btn btn-warning btn-sm" data-acao-item="${it.id}" data-acao="entregar" data-pendencia="true" data-lote="${f.lote}" data-status="${f.situacao_planilha}">⚠️ Entrega Urgente</button>`;
+          }
+          return `<button class="btn btn-success btn-sm" data-acao-item="${it.id}" data-acao="entregar" data-pendencia="false">Confirmar Entrega</button>`;
+        }
+        
         if(it.situacao_item === 'Devolução Solicitada') return `<button class="btn btn-primary btn-sm" data-acao-item="${it.id}" data-acao="confirmar-devolucao">Confirmar Recebimento</button>`;
         if(it.situacao_item === 'Devolvido') return `<span style="color:var(--success);font-weight:600;">✓ Devolvido</span>`;
         return U.badgeItem(it.situacao_item);
@@ -343,35 +368,63 @@ const App = {
     
     'solicitacao-detalhe': function(){ 
       document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); 
+      
       document.querySelectorAll('[data-acao-item]').forEach(b=>b.addEventListener('click', ()=>{
         const itemId = Number(b.dataset.acaoItem);
         const acao = b.dataset.acao;
         const item = Store.get('itens_solicitacao').find(i=>i.id===itemId);
         const solId = item.solicitacao_id;
         
-        if(acao === 'separar') Store.update('itens_solicitacao', itemId, { situacao_item: 'Separando' });
-        if(acao === 'entregar') Store.update('itens_solicitacao', itemId, { situacao_item: 'Entregue' });
-        if(acao === 'solicitar-devolucao') Store.update('itens_solicitacao', itemId, { situacao_item: 'Devolução Solicitada' });
-        if(acao === 'confirmar-devolucao') Store.update('itens_solicitacao', itemId, { situacao_item: 'Devolvido' });
-        
-        const todosItens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id === solId);
-        const qtdPendentes = todosItens.filter(i=>i.situacao_item === 'Pendente').length;
-        const qtdSeparando = todosItens.filter(i=>i.situacao_item === 'Separando').length;
-        const qtdEntregues = todosItens.filter(i=>i.situacao_item === 'Entregue').length;
-        const qtdDevolSolicitada = todosItens.filter(i=>i.situacao_item === 'Devolução Solicitada').length;
-        const qtdDevolvidos = todosItens.filter(i=>i.situacao_item === 'Devolvido').length;
-        
-        let novoSituacao = 'Pendente';
-        if (qtdDevolvidos === todosItens.length) { novoSituacao = 'Finalizada'; U.toast('Solicitação finalizada.', 'success'); } 
-        else if (qtdDevolSolicitada > 0) { novoSituacao = 'Aguardando Confirmação'; U.toast('Aguardando conferência do Admin.', 'info'); } 
-        else if (qtdEntregues > 0) {
-          if (qtdSeparando > 0 || qtdPendentes > 0) { novoSituacao = 'Em Separação'; } 
-          else { novoSituacao = 'Aguardando Devolução'; }
-          U.toast('Status atualizado.', 'info');
-        } else if (qtdSeparando > 0) { novoSituacao = 'Em Separação'; U.toast('Separação iniciada.', 'info'); }
-        
-        Store.update('solicitacoes', solId, { situacao: novoSituacao });
-        this.renderScreen(); 
+        if(acao === 'separar') {
+          Store.update('itens_solicitacao', itemId, { situacao_item: 'Separando' });
+          this.atualizarStatusSolicitacao(solId);
+          this.renderScreen();
+        }
+        else if(acao === 'entregar') {
+          const hasPendencia = b.dataset.pendencia === 'true';
+          
+          if (hasPendencia) {
+            const lote = b.dataset.lote;
+            const status = b.dataset.status;
+            const modalBody = `
+              <p style="font-size:14px; color:var(--text-main); margin-bottom:12px;">
+                A ficha <strong>Lote ${lote}</strong> está com a pendência: <strong style="color:var(--danger);">${status}</strong>.
+              </p>
+              <p style="font-size:13px; color:var(--text-muted);">
+                O correto é aguardar a resolução da pendência antes de entregar. Deseja <strong>forçar a entrega</strong> por motivos de urgência?
+              </p>
+            `;
+            this.openModal('Atenção: Ficha com Pendência', modalBody, `
+              <button class="btn btn-secondary" data-close>Cancelar</button>
+              <button class="btn btn-warning" id="btn-forcar-entrega">Sim, Entregar com Urgência</button>
+            `);
+            
+            document.getElementById('btn-forcar-entrega').addEventListener('click', () => {
+              Store.update('itens_solicitacao', itemId, { situacao_item: 'Entregue' });
+              this.atualizarStatusSolicitacao(solId);
+              this.closeModal();
+              this.renderScreen();
+              U.toast('Entrega de urgência registrada.', 'warning');
+            });
+          } else {
+            Store.update('itens_solicitacao', itemId, { situacao_item: 'Entregue' });
+            this.atualizarStatusSolicitacao(solId);
+            this.renderScreen();
+            U.toast('Entrega confirmada.', 'success');
+          }
+        }
+        else if(acao === 'solicitar-devolucao') {
+          Store.update('itens_solicitacao', itemId, { situacao_item: 'Devolução Solicitada' });
+          this.atualizarStatusSolicitacao(solId);
+          this.renderScreen();
+          U.toast('Devolução informada! Aguardando conferência do Admin.', 'info');
+        }
+        else if(acao === 'confirmar-devolucao') {
+          Store.update('itens_solicitacao', itemId, { situacao_item: 'Devolvido' });
+          this.atualizarStatusSolicitacao(solId);
+          this.renderScreen();
+          U.toast('Recebimento confirmado!', 'success');
+        }
       }));
     },
     
