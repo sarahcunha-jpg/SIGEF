@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.19</div>
+          <div class="sidebar-footer">v3.20</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -176,7 +176,7 @@ const App = {
     const sol = Store.get('solicitacoes').find(s => s.id === solId);
     if(!sol) return;
     
-    // FILTRO: Pega APENAS os itens com status 'Separando'
+    // FILTRO ESTRITO: Pega APENAS os itens com status 'Separando'
     const itensFiltrados = Store.get('itens_solicitacao').filter(i => 
       i.solicitacao_id === solId && 
       i.situacao_item === 'Separando'
@@ -196,47 +196,63 @@ const App = {
       </tr>`;
     }).join('');
 
+    // NOVO DESIGN DO COMPROVANTE
     const body = `
       <div class="receipt">
-        <div class="receipt-head">
-          <div><div class="brand">SIGEF<small>Sistema Integrado de Gestão de Fichas</small></div></div>
-          <div class="doc">
-            <strong>COMPROVANTE DE ENTREGA</strong>
-            <span>Solicitação: <b>${sol.numero}</b></span>
-            <span>Data: ${U.fmtDate(sol.data_criacao)}</span>
+        <div class="receipt-header">
+          <div class="logo">SIGEF<small>Sistema Integrado de Gestão de Fichas</small></div>
+          <div class="doc-info">
+            <h2>COMPROVANTE DE ENTREGA</h2>
+            <p>Solicitação: <b>${sol.numero}</b></p>
+            <p>Data: ${U.fmtDate(sol.data_criacao)}</p>
           </div>
         </div>
         
-        <div class="receipt-grid">
-          <div class="f"><strong>Solicitante</strong>${sol.solicitante_nome}</div>
-          <div class="f"><strong>Setor</strong>${sol.setor}</div>
+        <div class="receipt-info-grid">
+          <div class="info-item">
+            <strong>Solicitante</strong>
+            <span>${sol.solicitante_nome}</span>
+          </div>
+          <div class="info-item">
+            <strong>Setor</strong>
+            <span>${sol.setor}</span>
+          </div>
         </div>
 
-        <table>
-          <thead><tr><th>Lote</th><th>Código</th><th>Descrição do Produto</th></tr></thead>
+        <table class="receipt-table">
+          <thead>
+            <tr>
+              <th>Lote</th>
+              <th>Código</th>
+              <th>Descrição do Produto</th>
+            </tr>
+          </thead>
           <tbody>${linhas}</tbody>
         </table>
 
-        <p style="font-size:13px; margin-top:20px; font-weight:600;">
-          Quantidade de fichas nesta entrega: <span style="color:var(--primary);">${itensFiltrados.length}</span>
-        </p>
+        <div class="receipt-total">
+          Quantidade de fichas nesta entrega: <span>${itensFiltrados.length}</span>
+        </div>
 
-        <div class="sign-area" style="margin-top: 60px; display: flex; justify-content: space-between; gap: 20px;">
-          <div style="text-align: center; width: 45%;">
-            <div style="border-top: 1px solid #0F172A; margin-top: 40px;"></div>
-            <div style="font-size: 12px; margin-top: 8px; color: #475569;">Assinatura do Solicitante</div>
+        <div class="receipt-signatures">
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <span>Assinatura do Solicitante</span>
           </div>
-          <div style="text-align: center; width: 45%;">
-            <div style="border-top: 1px solid #0F172A; margin-top: 40px;"></div>
-            <div style="font-size: 12px; margin-top: 8px; color: #475569;">Data do Recebimento</div>
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <span>Data do Recebimento</span>
           </div>
         </div>
       </div>
     `;
 
-    this.openModal('Comprovante de Entrega', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print-receipt">🖨️ Imprimir Comprovante</button>`);
+    this.openModal('Imprimir Comprovante', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print-receipt">🖨️ Imprimir</button>`, true);
     
-    document.getElementById('btn-print-receipt').addEventListener('click', () => window.print());
+    document.getElementById('btn-print-receipt').addEventListener('click', () => {
+      // Pequeno delay para garantir que a interface do modal terminou de renderizar antes de abrir o print
+      setTimeout(() => window.print(), 100);
+    });
   },
 
   screenDashboard(){ 
@@ -323,7 +339,6 @@ const App = {
       <th>Número</th><th>Lotes</th><th>Entregues</th><th>Solicitante</th><th>Setor</th><th>Data</th><th>Situação</th><th>Ações</th>
     </tr></thead><tbody>
       ${Store.get('solicitacoes').map(s=>{
-        // VERIFICA SE EXISTE ALGUMA FICHA COM STATUS 'Separando'
         const temItensParaImprimir = Store.get('itens_solicitacao').some(i => 
           i.solicitacao_id === s.id && i.situacao_item === 'Separando'
         );
@@ -386,7 +401,6 @@ const App = {
       }
     };
 
-    // VERIFICA SE EXISTE ALGUMA FICHA COM STATUS 'Separando'
     const temItensParaImprimir = itens.some(i => i.situacao_item === 'Separando');
 
     return `<div style="display:flex; justify-content:space-between; align-items:center;">
@@ -443,7 +457,6 @@ const App = {
     const sols = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
     return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Lotes</th><th>Entregues</th><th>Setor</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
       ${sols.map(s=>{
-        // VERIFICA SE EXISTE ALGUMA FICHA COM STATUS 'Separando'
         const temItensParaImprimir = Store.get('itens_solicitacao').some(i => 
           i.solicitacao_id === s.id && i.situacao_item === 'Separando'
         );
@@ -624,7 +637,7 @@ const App = {
       }));
     }
   },
-  openModal(title, body, foot='') { document.body.classList.add('modal-open'); const el = document.createElement('div'); el.className = 'modal-overlay'; el.innerHTML = `<div class="modal"><div class="modal-head"><h3>${title}</h3><button class="close-x" data-close>×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div>`; document.body.appendChild(el); el.querySelector('[data-close]').addEventListener('click', ()=>this.closeModal()); el.addEventListener('click', e=>{ if(e.target===el) this.closeModal(); }); },
+  openModal(title, body, foot='', large=false) { document.body.classList.add('modal-open'); const el = document.createElement('div'); el.className = 'modal-overlay'; el.innerHTML = `<div class="modal ${large?'modal-lg':''}"><div class="modal-head"><h3>${title}</h3><button class="close-x" data-close>×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div>`; document.body.appendChild(el); el.querySelector('[data-close]').addEventListener('click', ()=>this.closeModal()); el.addEventListener('click', e=>{ if(e.target===el) this.closeModal(); }); },
   closeModal() { document.body.classList.remove('modal-open'); const m = document.querySelector('.modal-overlay'); if(m) m.remove(); }
 };
 document.addEventListener('DOMContentLoaded', ()=>App.init());
