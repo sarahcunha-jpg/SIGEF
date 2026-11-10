@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.14</div>
+          <div class="sidebar-footer">v3.15</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -109,6 +109,18 @@ const App = {
   },
   metricCard(label, value){ return `<div class="card metric"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
   
+  // VERIFICA SE A FICHA ESTÁ EMPRESTADA EM OUTRA SOLICITAÇÃO
+  fichaEstaEmprestada(fichaId) {
+    if (!fichaId) return null;
+    const itens = Store.get('itens_solicitacao');
+    // Procura se a ficha está 'Entregue' ou 'Devolução Solicitada' em alguma solicitação
+    const emprestimoAtivo = itens.find(i => i.ficha_id === fichaId && (i.situacao_item === 'Entregue' || i.situacao_item === 'Devolução Solicitada'));
+    if (emprestimoAtivo) {
+      return Store.get('solicitacoes').find(s => s.id === emprestimoAtivo.solicitacao_id);
+    }
+    return null;
+  },
+
   getLotesStr(solId) {
     const itens = Store.get('itens_solicitacao').filter(i => i.solicitacao_id === solId);
     const lotes = itens.map(it => {
@@ -128,8 +140,17 @@ const App = {
     if(!lote) return '';
     const f = Store.get('fichas').find(x => x.lote === lote);
     if(f) {
+      const solEmprestada = this.fichaEstaEmprestada(f.id);
       let alerta = '';
-      if(f.situacao_planilha !== 'Arquivada') alerta = ` <span style="color:var(--danger); font-size:11px;">(Atenção: Ficha ${f.situacao_planilha})</span>`;
+      
+      if (solEmprestada) {
+        alerta = ` <span style="color:var(--danger); font-weight:600;">(Emprestada na ${solEmprestada.numero})</span>`;
+        return `<span style="color:var(--success); font-weight:600;">✓ ${f.nome_produto} (${f.codigo_produto})</span>${alerta}`;
+      }
+      
+      if(f.situacao_planilha !== 'Arquivada') {
+        alerta = ` <span style="color:var(--warning); font-size:11px;">(Atenção: Ficha ${f.situacao_planilha})</span>`;
+      }
       return `<span style="color:var(--success); font-weight:600;">✓ ${f.nome_produto} (${f.codigo_produto})</span>${alerta}`;
     } else {
       return `<span style="color:var(--danger);">✕ Lote não encontrado no sistema</span>`;
@@ -257,19 +278,32 @@ const App = {
     
     const getAcaoBtn = (it) => {
       const f = U.findFicha(it.ficha_id);
-      const isFichaIndisponivel = f && f.situacao_planilha !== 'Arquivada';
+      if(!f) return U.badgeItem(it.situacao_item);
+
+      const solEmprestada = this.fichaEstaEmprestada(f.id);
 
       if(user.perfil === 'solicitante') {
         if(it.situacao_item === 'Entregue') return `<button class="btn btn-warning btn-sm" data-acao-item="${it.id}" data-acao="solicitar-devolucao">Informar Devolução</button>`;
         if(it.situacao_item === 'Devolução Solicitada') return `<span class="badge badge-purple" style="font-size:11px;">Aguardando Confirmação</span>`;
         if(it.situacao_item === 'Devolvido') return `<span style="color:var(--success);font-weight:600;">✓ Devolvido</span>`;
-        if(it.situacao_item === 'Pendente' && isFichaIndisponivel) return `<span style="color:var(--danger); font-size:12px;">Aguardar correção</span>`;
+        if(it.situacao_item === 'Pendente' && (solEmprestada || f.situacao_planilha !== 'Arquivada')) {
+           return `<span style="color:var(--danger); font-size:12px;">Aguardar disponibilidade</span>`;
+        }
         return U.badgeItem(it.situacao_item);
       } else {
-        if(it.situacao_item === 'Pendente') return `<button class="btn btn-secondary btn-sm" data-acao-item="${it.id}" data-acao="separar">Iniciar Separação</button>`;
+        if(it.situacao_item === 'Pendente') {
+           if (solEmprestada && solEmprestada.id !== s.id) return `<span class="badge badge-red">Emprestada (${solEmprestada.numero})</span>`;
+           return `<button class="btn btn-secondary btn-sm" data-acao-item="${it.id}" data-acao="separar">Iniciar Separação</button>`;
+        }
         
         if(it.situacao_item === 'Separando') {
-          if (isFichaIndisponivel) {
+          // REGRA DE BLOQUEIO: Se já estiver emprestada em outro lugar, bloqueia total
+          if (solEmprestada && solEmprestada.id !== s.id) {
+            return `<span class="badge badge-red">Emprestada (${solEmprestada.numero})</span>`;
+          }
+          
+          // REGRA DE URGÊNCIA: Se tem pendência documental, exige confirmação
+          if (f.situacao_planilha !== 'Arquivada') {
             return `<button class="btn btn-warning btn-sm" data-acao-item="${it.id}" data-acao="entregar" data-pendencia="true" data-lote="${f.lote}" data-status="${f.situacao_planilha}">⚠️ Entrega Urgente</button>`;
           }
           return `<button class="btn btn-success btn-sm" data-acao-item="${it.id}" data-acao="entregar" data-pendencia="false">Confirmar Entrega</button>`;
@@ -381,6 +415,13 @@ const App = {
           this.renderScreen();
         }
         else if(acao === 'entregar') {
+          // DUPLA CHECAGEM DE SEGURANÇA NO BANCO
+          const solEmprestada = this.fichaEstaEmprestada(item.ficha_id);
+          if (solEmprestada && solEmprestada.id !== solId) {
+             U.toast(`Erro Crítico: Esta ficha está com o solicitante na ${solEmprestada.numero}!`, 'error');
+             return;
+          }
+
           const hasPendencia = b.dataset.pendencia === 'true';
           
           if (hasPendencia) {
@@ -388,7 +429,7 @@ const App = {
             const status = b.dataset.status;
             const modalBody = `
               <p style="font-size:14px; color:var(--text-main); margin-bottom:12px;">
-                A ficha <strong>Lote ${lote}</strong> está com a pendência: <strong style="color:var(--danger);">${status}</strong>.
+                A ficha <strong>Lote ${lote}</strong> está com a pendência documental: <strong style="color:var(--danger);">${status}</strong>.
               </p>
               <p style="font-size:13px; color:var(--text-muted);">
                 O correto é aguardar a resolução da pendência antes de entregar. Deseja <strong>forçar a entrega</strong> por motivos de urgência?
