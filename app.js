@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.17</div>
+          <div class="sidebar-footer">v3.18</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -176,14 +176,14 @@ const App = {
     const sol = Store.get('solicitacoes').find(s => s.id === solId);
     if(!sol) return;
     
-    // FILTRO APLICADO: Pega apenas os itens 'Separando' ou 'Entregue'
+    // FILTRO RIGOROSO: Pega APENAS os itens com status 'Separando' ou 'Entregue'
     const itensFiltrados = Store.get('itens_solicitacao').filter(i => 
       i.solicitacao_id === solId && 
       (i.situacao_item === 'Separando' || i.situacao_item === 'Entregue')
     );
 
     if (itensFiltrados.length === 0) {
-      U.toast('Nenhuma ficha foi separada ou entregue para gerar o comprovante.', 'warning');
+      alert('Atenção: Não há fichas com status "Separando" ou "Entregue" nesta solicitação. Inicie a separação antes de imprimir o comprovante.');
       return;
     }
 
@@ -322,19 +322,26 @@ const App = {
     return `<div class="table-wrap"><table><thead><tr>
       <th>Número</th><th>Lotes</th><th>Entregues</th><th>Solicitante</th><th>Setor</th><th>Data</th><th>Situação</th><th>Ações</th>
     </tr></thead><tbody>
-      ${Store.get('solicitacoes').map(s=>`<tr>
-        <td><strong>${s.numero}</strong></td>
-        <td>${this.getLotesStr(s.id)}</td>
-        <td><span style="font-weight:600; color:var(--primary);">${this.getEntreguesCount(s.id)}</span></td>
-        <td>${s.solicitante_nome}</td>
-        <td>${s.setor}</td>
-        <td>${U.fmtDate(s.data_criacao)}</td>
-        <td>${U.badgeSol(s.situacao)}</td>
-        <td class="table-actions">
-          <button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Abrir</button>
-          <button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>
-        </td>
-      </tr>`).join('')}
+      ${Store.get('solicitacoes').map(s=>{
+        // VERIFICA SE EXISTE ALGUMA FICHA PRONTA PARA IMPRIMIR NESTA SOLICITAÇÃO
+        const temItensParaImprimir = Store.get('itens_solicitacao').some(i => 
+          i.solicitacao_id === s.id && (i.situacao_item === 'Separando' || i.situacao_item === 'Entregue')
+        );
+
+        return `<tr>
+          <td><strong>${s.numero}</strong></td>
+          <td>${this.getLotesStr(s.id)}</td>
+          <td><span style="font-weight:600; color:var(--primary);">${this.getEntreguesCount(s.id)}</span></td>
+          <td>${s.solicitante_nome}</td>
+          <td>${s.setor}</td>
+          <td>${U.fmtDate(s.data_criacao)}</td>
+          <td>${U.badgeSol(s.situacao)}</td>
+          <td class="table-actions">
+            <button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Abrir</button>
+            ${temItensParaImprimir ? `<button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('')}
     </tbody></table></div>`;
   },
   
@@ -379,9 +386,11 @@ const App = {
       }
     };
 
+    const temItensParaImprimir = itens.some(i => i.situacao_item === 'Separando' || i.situacao_item === 'Entregue');
+
     return `<div style="display:flex; justify-content:space-between; align-items:center;">
       <button class="btn btn-secondary btn-sm" data-nav="${user.perfil==='admin'?'solicitacoes':'minhas-solicitacoes'}">← Voltar</button>
-      <button class="btn btn-primary btn-sm" data-print-sol="${s.id}">🖨️ Imprimir Comprovante</button>
+      ${temItensParaImprimir ? `<button class="btn btn-primary btn-sm" data-print-sol="${s.id}">🖨️ Imprimir Comprovante</button>` : ''}
     </div>
       <div class="card" style="margin-top:20px;">
         <div class="section-head"><h2>${s.numero}</h2>${U.badgeSol(s.situacao)}</div>
@@ -432,7 +441,12 @@ const App = {
     const user = Auth.current();
     const sols = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
     return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Lotes</th><th>Entregues</th><th>Setor</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
-      ${sols.map(s=>`
+      ${sols.map(s=>{
+        const temItensParaImprimir = Store.get('itens_solicitacao').some(i => 
+          i.solicitacao_id === s.id && (i.situacao_item === 'Separando' || i.situacao_item === 'Entregue')
+        );
+
+        return `
         <tr>
           <td><strong>${s.numero}</strong></td>
           <td>${this.getLotesStr(s.id)}</td>
@@ -444,9 +458,10 @@ const App = {
             ${s.situacao === 'Aguardando Devolução' 
               ? `<button class="btn btn-warning btn-sm" data-sol-detail="${s.id}">Devolver Fichas</button>` 
               : `<button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Ver Detalhes</button>`}
-            <button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>
+            ${temItensParaImprimir ? `<button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>` : ''}
           </td>
-        </tr>`).join('')}
+        </tr>`;
+      }).join('')}
     </tbody></table></div>`;
   },
   
