@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.16</div>
+          <div class="sidebar-footer">v3.17</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -176,8 +176,18 @@ const App = {
     const sol = Store.get('solicitacoes').find(s => s.id === solId);
     if(!sol) return;
     
-    const itens = Store.get('itens_solicitacao').filter(i => i.solicitacao_id === solId);
-    const linhas = itens.map(it => {
+    // FILTRO APLICADO: Pega apenas os itens 'Separando' ou 'Entregue'
+    const itensFiltrados = Store.get('itens_solicitacao').filter(i => 
+      i.solicitacao_id === solId && 
+      (i.situacao_item === 'Separando' || i.situacao_item === 'Entregue')
+    );
+
+    if (itensFiltrados.length === 0) {
+      U.toast('Nenhuma ficha foi separada ou entregue para gerar o comprovante.', 'warning');
+      return;
+    }
+
+    const linhas = itensFiltrados.map(it => {
       const f = U.findFicha(it.ficha_id);
       return `<tr>
         <td>${f ? f.lote : it.lote_snapshot}</td>
@@ -208,7 +218,7 @@ const App = {
         </table>
 
         <p style="font-size:13px; margin-top:20px; font-weight:600;">
-          Quantidade total de fichas: <span style="color:var(--primary);">${itens.length}</span>
+          Quantidade de fichas nesta entrega: <span style="color:var(--primary);">${itensFiltrados.length}</span>
         </p>
 
         <div class="sign-area" style="margin-top: 60px; display: flex; justify-content: space-between; gap: 20px;">
@@ -322,7 +332,7 @@ const App = {
         <td>${U.badgeSol(s.situacao)}</td>
         <td class="table-actions">
           <button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Abrir</button>
-          ${this.getEntreguesCount(s.id) !== '0 / 0' ? `<button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>` : ''}
+          <button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>
         </td>
       </tr>`).join('')}
     </tbody></table></div>`;
@@ -434,7 +444,7 @@ const App = {
             ${s.situacao === 'Aguardando Devolução' 
               ? `<button class="btn btn-warning btn-sm" data-sol-detail="${s.id}">Devolver Fichas</button>` 
               : `<button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Ver Detalhes</button>`}
-            ${this.getEntreguesCount(s.id) !== '0 / 0' ? `<button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>` : ''}
+            <button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>
           </td>
         </tr>`).join('')}
     </tbody></table></div>`;
