@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.15</div>
+          <div class="sidebar-footer">v3.16</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -109,11 +109,9 @@ const App = {
   },
   metricCard(label, value){ return `<div class="card metric"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
   
-  // VERIFICA SE A FICHA ESTÁ EMPRESTADA EM OUTRA SOLICITAÇÃO
   fichaEstaEmprestada(fichaId) {
     if (!fichaId) return null;
     const itens = Store.get('itens_solicitacao');
-    // Procura se a ficha está 'Entregue' ou 'Devolução Solicitada' em alguma solicitação
     const emprestimoAtivo = itens.find(i => i.ficha_id === fichaId && (i.situacao_item === 'Entregue' || i.situacao_item === 'Devolução Solicitada'));
     if (emprestimoAtivo) {
       return Store.get('solicitacoes').find(s => s.id === emprestimoAtivo.solicitacao_id);
@@ -142,12 +140,10 @@ const App = {
     if(f) {
       const solEmprestada = this.fichaEstaEmprestada(f.id);
       let alerta = '';
-      
       if (solEmprestada) {
         alerta = ` <span style="color:var(--danger); font-weight:600;">(Emprestada na ${solEmprestada.numero})</span>`;
         return `<span style="color:var(--success); font-weight:600;">✓ ${f.nome_produto} (${f.codigo_produto})</span>${alerta}`;
       }
-      
       if(f.situacao_planilha !== 'Arquivada') {
         alerta = ` <span style="color:var(--warning); font-size:11px;">(Atenção: Ficha ${f.situacao_planilha})</span>`;
       }
@@ -174,6 +170,63 @@ const App = {
     } else if (qtdSeparando > 0) { novoSituacao = 'Em Separação'; }
     
     Store.update('solicitacoes', solId, { situacao: novoSituacao });
+  },
+
+  abrirComprovante(solId) {
+    const sol = Store.get('solicitacoes').find(s => s.id === solId);
+    if(!sol) return;
+    
+    const itens = Store.get('itens_solicitacao').filter(i => i.solicitacao_id === solId);
+    const linhas = itens.map(it => {
+      const f = U.findFicha(it.ficha_id);
+      return `<tr>
+        <td>${f ? f.lote : it.lote_snapshot}</td>
+        <td>${f ? f.codigo_produto : '-'}</td>
+        <td>${f ? f.nome_produto : '-'}</td>
+      </tr>`;
+    }).join('');
+
+    const body = `
+      <div class="receipt">
+        <div class="receipt-head">
+          <div><div class="brand">SIGEF<small>Sistema Integrado de Gestão de Fichas</small></div></div>
+          <div class="doc">
+            <strong>COMPROVANTE DE ENTREGA</strong>
+            <span>Solicitação: <b>${sol.numero}</b></span>
+            <span>Data: ${U.fmtDate(sol.data_criacao)}</span>
+          </div>
+        </div>
+        
+        <div class="receipt-grid">
+          <div class="f"><strong>Solicitante</strong>${sol.solicitante_nome}</div>
+          <div class="f"><strong>Setor</strong>${sol.setor}</div>
+        </div>
+
+        <table>
+          <thead><tr><th>Lote</th><th>Código</th><th>Descrição do Produto</th></tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+
+        <p style="font-size:13px; margin-top:20px; font-weight:600;">
+          Quantidade total de fichas: <span style="color:var(--primary);">${itens.length}</span>
+        </p>
+
+        <div class="sign-area" style="margin-top: 60px; display: flex; justify-content: space-between; gap: 20px;">
+          <div style="text-align: center; width: 45%;">
+            <div style="border-top: 1px solid #0F172A; margin-top: 40px;"></div>
+            <div style="font-size: 12px; margin-top: 8px; color: #475569;">Assinatura do Solicitante</div>
+          </div>
+          <div style="text-align: center; width: 45%;">
+            <div style="border-top: 1px solid #0F172A; margin-top: 40px;"></div>
+            <div style="font-size: 12px; margin-top: 8px; color: #475569;">Data do Recebimento</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.openModal('Comprovante de Entrega', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print-receipt">🖨️ Imprimir Comprovante</button>`);
+    
+    document.getElementById('btn-print-receipt').addEventListener('click', () => window.print());
   },
 
   screenDashboard(){ 
@@ -257,16 +310,20 @@ const App = {
   
   screenSolicitacoes(){
     return `<div class="table-wrap"><table><thead><tr>
-      <th>Número</th><th>Lotes</th><th>Entregues</th><th>Solicitante</th><th>Data</th><th>Situação</th><th>Ações</th>
+      <th>Número</th><th>Lotes</th><th>Entregues</th><th>Solicitante</th><th>Setor</th><th>Data</th><th>Situação</th><th>Ações</th>
     </tr></thead><tbody>
       ${Store.get('solicitacoes').map(s=>`<tr>
         <td><strong>${s.numero}</strong></td>
         <td>${this.getLotesStr(s.id)}</td>
         <td><span style="font-weight:600; color:var(--primary);">${this.getEntreguesCount(s.id)}</span></td>
         <td>${s.solicitante_nome}</td>
+        <td>${s.setor}</td>
         <td>${U.fmtDate(s.data_criacao)}</td>
         <td>${U.badgeSol(s.situacao)}</td>
-        <td><button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Abrir</button></td>
+        <td class="table-actions">
+          <button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Abrir</button>
+          ${this.getEntreguesCount(s.id) !== '0 / 0' ? `<button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>` : ''}
+        </td>
       </tr>`).join('')}
     </tbody></table></div>`;
   },
@@ -297,12 +354,9 @@ const App = {
         }
         
         if(it.situacao_item === 'Separando') {
-          // REGRA DE BLOQUEIO: Se já estiver emprestada em outro lugar, bloqueia total
           if (solEmprestada && solEmprestada.id !== s.id) {
             return `<span class="badge badge-red">Emprestada (${solEmprestada.numero})</span>`;
           }
-          
-          // REGRA DE URGÊNCIA: Se tem pendência documental, exige confirmação
           if (f.situacao_planilha !== 'Arquivada') {
             return `<button class="btn btn-warning btn-sm" data-acao-item="${it.id}" data-acao="entregar" data-pendencia="true" data-lote="${f.lote}" data-status="${f.situacao_planilha}">⚠️ Entrega Urgente</button>`;
           }
@@ -315,10 +369,13 @@ const App = {
       }
     };
 
-    return `<button class="btn btn-secondary btn-sm" data-nav="${user.perfil==='admin'?'solicitacoes':'minhas-solicitacoes'}">← Voltar</button>
+    return `<div style="display:flex; justify-content:space-between; align-items:center;">
+      <button class="btn btn-secondary btn-sm" data-nav="${user.perfil==='admin'?'solicitacoes':'minhas-solicitacoes'}">← Voltar</button>
+      <button class="btn btn-primary btn-sm" data-print-sol="${s.id}">🖨️ Imprimir Comprovante</button>
+    </div>
       <div class="card" style="margin-top:20px;">
         <div class="section-head"><h2>${s.numero}</h2>${U.badgeSol(s.situacao)}</div>
-        <p style="color:var(--text-muted);margin-bottom:20px;">Solicitante: <strong>${s.solicitante_nome}</strong> | Setor: ${s.setor} | Data: ${U.fmtDate(s.data_criacao)}</p>
+        <p style="color:var(--text-muted);margin-bottom:20px;">Solicitante: <strong>${s.solicitante_nome}</strong> | Setor: <strong>${s.setor}</strong> | Data: ${U.fmtDate(s.data_criacao)}</p>
         
         <h3 style="margin-bottom:16px;">Fichas da Solicitação</h3>
         <div class="table-wrap">
@@ -364,15 +421,21 @@ const App = {
   screenMinhasSolicitacoes(){
     const user = Auth.current();
     const sols = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
-    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Lotes</th><th>Entregues</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
+    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Lotes</th><th>Entregues</th><th>Setor</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
       ${sols.map(s=>`
         <tr>
           <td><strong>${s.numero}</strong></td>
           <td>${this.getLotesStr(s.id)}</td>
           <td><span style="font-weight:600; color:var(--primary);">${this.getEntreguesCount(s.id)}</span></td>
+          <td>${s.setor}</td>
           <td>${U.fmtDate(s.data_criacao)}</td>
           <td>${U.badgeSol(s.situacao)}</td>
-          <td>${s.situacao === 'Aguardando Devolução' ? `<button class="btn btn-warning btn-sm" data-sol-detail="${s.id}">Devolver Fichas</button>` : `<button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Ver Detalhes</button>`}</td>
+          <td class="table-actions">
+            ${s.situacao === 'Aguardando Devolução' 
+              ? `<button class="btn btn-warning btn-sm" data-sol-detail="${s.id}">Devolver Fichas</button>` 
+              : `<button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Ver Detalhes</button>`}
+            ${this.getEntreguesCount(s.id) !== '0 / 0' ? `<button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>` : ''}
+          </td>
         </tr>`).join('')}
     </tbody></table></div>`;
   },
@@ -397,11 +460,18 @@ const App = {
   
   events: {
     dashboard: function(){ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); },
-    solicitacoes: function(){ document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); },
-    'minhas-solicitacoes': function(){ document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); },
+    solicitacoes: function(){ 
+      document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); 
+      document.querySelectorAll('[data-print-sol]').forEach(b=>b.addEventListener('click', ()=>this.abrirComprovante(Number(b.dataset.printSol))));
+    },
+    'minhas-solicitacoes': function(){ 
+      document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); 
+      document.querySelectorAll('[data-print-sol]').forEach(b=>b.addEventListener('click', ()=>this.abrirComprovante(Number(b.dataset.printSol))));
+    },
     
     'solicitacao-detalhe': function(){ 
       document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); 
+      document.querySelectorAll('[data-print-sol]').forEach(b=>b.addEventListener('click', ()=>this.abrirComprovante(Number(b.dataset.printSol))));
       
       document.querySelectorAll('[data-acao-item]').forEach(b=>b.addEventListener('click', ()=>{
         const itemId = Number(b.dataset.acaoItem);
@@ -415,7 +485,6 @@ const App = {
           this.renderScreen();
         }
         else if(acao === 'entregar') {
-          // DUPLA CHECAGEM DE SEGURANÇA NO BANCO
           const solEmprestada = this.fichaEstaEmprestada(item.ficha_id);
           if (solEmprestada && solEmprestada.id !== solId) {
              U.toast(`Erro Crítico: Esta ficha está com o solicitante na ${solEmprestada.numero}!`, 'error');
