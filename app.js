@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.18</div>
+          <div class="sidebar-footer">v3.19</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -176,14 +176,14 @@ const App = {
     const sol = Store.get('solicitacoes').find(s => s.id === solId);
     if(!sol) return;
     
-    // FILTRO RIGOROSO: Pega APENAS os itens com status 'Separando' ou 'Entregue'
+    // FILTRO: Pega APENAS os itens com status 'Separando'
     const itensFiltrados = Store.get('itens_solicitacao').filter(i => 
       i.solicitacao_id === solId && 
-      (i.situacao_item === 'Separando' || i.situacao_item === 'Entregue')
+      i.situacao_item === 'Separando'
     );
 
     if (itensFiltrados.length === 0) {
-      alert('Atenção: Não há fichas com status "Separando" ou "Entregue" nesta solicitação. Inicie a separação antes de imprimir o comprovante.');
+      alert('Atenção: Não há fichas com o status "Separando" nesta solicitação. Inicie a separação das fichas antes de imprimir o comprovante.');
       return;
     }
 
@@ -323,9 +323,9 @@ const App = {
       <th>Número</th><th>Lotes</th><th>Entregues</th><th>Solicitante</th><th>Setor</th><th>Data</th><th>Situação</th><th>Ações</th>
     </tr></thead><tbody>
       ${Store.get('solicitacoes').map(s=>{
-        // VERIFICA SE EXISTE ALGUMA FICHA PRONTA PARA IMPRIMIR NESTA SOLICITAÇÃO
+        // VERIFICA SE EXISTE ALGUMA FICHA COM STATUS 'Separando'
         const temItensParaImprimir = Store.get('itens_solicitacao').some(i => 
-          i.solicitacao_id === s.id && (i.situacao_item === 'Separando' || i.situacao_item === 'Entregue')
+          i.solicitacao_id === s.id && i.situacao_item === 'Separando'
         );
 
         return `<tr>
@@ -386,7 +386,8 @@ const App = {
       }
     };
 
-    const temItensParaImprimir = itens.some(i => i.situacao_item === 'Separando' || i.situacao_item === 'Entregue');
+    // VERIFICA SE EXISTE ALGUMA FICHA COM STATUS 'Separando'
+    const temItensParaImprimir = itens.some(i => i.situacao_item === 'Separando');
 
     return `<div style="display:flex; justify-content:space-between; align-items:center;">
       <button class="btn btn-secondary btn-sm" data-nav="${user.perfil==='admin'?'solicitacoes':'minhas-solicitacoes'}">← Voltar</button>
@@ -442,8 +443,9 @@ const App = {
     const sols = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
     return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Lotes</th><th>Entregues</th><th>Setor</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
       ${sols.map(s=>{
+        // VERIFICA SE EXISTE ALGUMA FICHA COM STATUS 'Separando'
         const temItensParaImprimir = Store.get('itens_solicitacao').some(i => 
-          i.solicitacao_id === s.id && (i.situacao_item === 'Separando' || i.situacao_item === 'Entregue')
+          i.solicitacao_id === s.id && i.situacao_item === 'Separando'
         );
 
         return `
