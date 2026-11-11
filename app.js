@@ -9,21 +9,19 @@ const U = {
     c.appendChild(el); requestAnimationFrame(()=>el.classList.add('show'));
     setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); }, 3500);
   },
-  badgeSit(sit){
-    const map = {'Arquivada':'badge-green','Em correção':'badge-yellow','Pendente de FO':'badge-orange','Pendente de RA':'badge-orange','Em revisão':'badge-blue','Emprestada':'badge-red','Emprestada (devolução informada)':'badge-orange','Devolução informada':'badge-orange','Recebida e conferida':'badge-green','Devolvida para correção':'badge-yellow','Disponível':'badge-green','Indisponível':'badge-gray','Entregue':'badge-green','Não encontrada':'badge-gray'};
-    return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
-  },
   badgeSol(sit){
-    const map = {'Recebida':'badge-blue','Em análise':'badge-blue','Parcialmente atendida':'badge-orange','Aguardando disponibilidade':'badge-yellow','Concluída':'badge-green','Cancelada':'badge-gray'};
+    const map = {'Pendente':'badge-gray','Em Separação':'badge-warning','Aguardando Devolução':'badge-orange','Aguardando Confirmação':'badge-purple','Finalizada':'badge-green'};
     return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
   },
-  badgeStatusEmp(st){
-    const map = {'Emprestada':'badge-red','Devolução informada':'badge-orange','Recebida e conferida':'badge-green','Devolvida para correção':'badge-yellow'};
-    return `<span class="badge ${map[st]||'badge-gray'}">${U.esc(st)}</span>`;
+  badgeItem(sit){
+    const map = {'Pendente':'badge-gray','Separando':'badge-warning','Entregue':'badge-green','Devolução Solicitada':'badge-purple','Devolvido':'badge-blue'};
+    return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
   },
-  findUser(id){ return Store.get('usuarios').find(u=>u.id===id); },
-  findFicha(id){ if(!id) return null; return Store.get('fichas').find(f=>f.id===id); },
-  emprestimoAtivo(fichaId){ return Store.get('emprestimos').find(e=>e.ficha_id===fichaId && (e.status==='Emprestada'||e.status==='Devolução informada')); }
+  badgeFicha(sit){
+    const map = {'Arquivada':'badge-green','Em correção':'badge-yellow','Pendente de FP':'badge-orange','Pendente de RA':'badge-orange','Em revisão':'badge-blue'};
+    return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
+  },
+  findFicha(id){ if(!id) return null; return Store.get('fichas').find(f=>f.id===id); }
 };
 
 const Auth = {
@@ -42,23 +40,20 @@ const App = {
   renderLogin(){
     document.getElementById('app').innerHTML = `
       <div class="login-wrap"><div class="login-card">
-        <div class="login-logo"><div class="sigef">SIGEF</div><div class="sub">Sistema Integrado de Gestão de Fichas</div></div>
-        <h2>Acessar o sistema</h2>
+        <div class="login-logo"><div class="sigef">SIGEF</div></div>
+        <h2>Acesse sua conta</h2>
         <form id="login-form">
-          <div class="field"><label>E-mail</label><input type="email" id="login-email" required placeholder="seu@email.com" autocomplete="username"></div>
-          <div class="field"><label>Senha</label><input type="password" id="login-senha" required placeholder="••••••••" autocomplete="current-password"></div>
+          <div class="field"><label>E-mail</label><input type="email" id="login-email" required placeholder="seu@email.com"></div>
+          <div class="field"><label>Senha</label><input type="password" id="login-senha" required placeholder="••••••••"></div>
           <button type="submit" class="btn btn-primary btn-block">Entrar</button>
         </form>
-        <div class="demo-box"><strong>Credenciais de demonstração:</strong><br>Admin: <code>admin@sigef.com</code> / <code>admin123</code><br>Solicitante: <code>joao@empresa.com</code> / <code>123456</code></div>
+        <div class="demo-box"><strong>Admin:</strong> admin@sigef.com / admin123<br><strong>João:</strong> joao@empresa.com / 123456</div>
       </div></div>`;
     document.getElementById('login-form').addEventListener('submit', e => {
       e.preventDefault();
       const u = Auth.login(document.getElementById('login-email').value.trim(), document.getElementById('login-senha').value);
-      if(u){ 
-        U.toast('Bem-vindo(a), '+u.nome,'success'); 
-        this.renderShell(); 
-        this.navigate('dashboard'); 
-      } else U.toast('Credenciais inválidas.','error');
+      if(u){ U.toast('Bem-vindo, '+u.nome,'success'); this.renderShell(); this.navigate('dashboard'); } 
+      else U.toast('Credenciais inválidas.','error');
     });
   },
   renderShell(){
@@ -66,15 +61,16 @@ const App = {
     document.getElementById('app').innerHTML = `
       <div class="shell">
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
-          <div class="sidebar-logo"><div class="sigef">SIGEF</div><div class="sub">Gestão de Fichas</div></div>
-          <nav class="nav" id="nav"></nav><div class="sidebar-footer">v3.20 - Protótipo</div>
+          <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
+          <nav class="nav" id="nav"></nav>
+          <div class="sidebar-footer">v3.20</div>
         </aside>
         <div class="main">
           <header class="header">
-            <div style="display:flex;align-items:center;gap:12px;"><button class="hamburger" id="hamburger">☰</button><h1 id="page-title">Painel</h1></div>
+            <div style="display:flex;align-items:center;gap:16px;"><button class="hamburger" id="hamburger">☰</button><h1 id="page-title">Painel</h1></div>
             <div class="user-chip">
-              <div class="user-meta"><strong>${U.esc(user.nome)}</strong><small>${U.esc(user.perfil==='admin'?'Administrador':'Solicitante')}</small></div>
-              <div class="avatar">${U.esc(user.nome.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase())}</div>
+              <div class="user-meta" style="text-align:right;"><strong>${U.esc(user.nome)}</strong><small>${U.esc(user.perfil)}</small></div>
+              <div class="avatar">${U.esc(user.nome[0])}</div>
               <button class="btn btn-secondary btn-sm" id="logout-btn">Sair</button>
             </div>
           </header>
@@ -87,27 +83,9 @@ const App = {
   },
   renderNav(){
     const user = Auth.current(); const admin = user.perfil==='admin';
-    
-    // Apenas as abas solicitadas
-    const items = admin ? [
-      ['dashboard','Painel inicial','📊'],
-      ['solicitacoes','Solicitações','📥'],
-      ['fichas','Consulta de fichas','🗂️'],
-      ['entregas','Entregas','📦'],
-      ['emprestimos','Empréstimos','🔄'],
-      ['devolucoes','Devoluções','↩️'],
-      ['historico','Histórico','🕓'],
-      ['relatorios','Relatórios','📈'],
-      ['planilha','Planilha de controle (demonstração)','📑']
-    ] : [
-      ['dashboard','Meu painel','📊'],
-      ['nova-solicitacao','Nova solicitação','➕'],
-      ['minhas-solicitacoes','Minhas solicitações','📥'],
-      ['minhas-fichas-emprestadas','Minhas fichas emprestadas','🔄'],
-      ['minhas-devolucoes','Minhas devoluções','↩️'],
-      ['meu-historico','Meu histórico','🕓'],
-      ['minha-conta','Minha conta','👤']
-    ];
+    const adminItems = [['dashboard','Painel','��'],['solicitacoes','Gerenciar Solicitações','📥'],['fichas','Consulta de Fichas','🗂️']];
+    const userItems = [['dashboard','Meu Painel','📊'],['nova-solicitacao','Nova Solicitação','➕'],['minhas-solicitacoes','Minhas Solicitações','📥']];
+    const items = admin ? adminItems : userItems;
     const nav = document.getElementById('nav');
     nav.innerHTML = items.map(([key,label,ico]) => `<div class="nav-item ${this.state.screen===key?'active':''}" data-screen="${key}"><span class="ico">${ico}</span><span>${U.esc(label)}</span></div>`).join('');
     nav.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', () => { this.state.sidebarOpen=false; this.navigate(el.dataset.screen); }));
@@ -119,259 +97,125 @@ const App = {
   },
   renderScreen(){
     const user = Auth.current(); if(!user) return;
-    const titles = {dashboard: user.perfil==='admin'?'Painel Administrativo':'Meu Painel',solicitacoes:'Solicitações',fichas:'Consulta de Fichas',entregas:'Entregas',emprestimos:'Empréstimos',devolucoes:'Devoluções',historico:'Histórico',relatorios:'Relatórios',planilha:'Planilha de controle (demonstração)','nova-solicitacao':'Nova Solicitação','minhas-solicitacoes':'Minhas Solicitações','minhas-fichas-emprestadas':'Minhas Fichas Emprestadas','minhas-devolucoes':'Minhas Devoluções','meu-historico':'Meu Histórico','minha-conta':'Minha Conta','solicitacao-detalhe':'Detalhe da Solicitação'};
+    const titles = {dashboard: 'Painel',solicitacoes:'Gerenciar Solicitações',fichas:'Consulta de Fichas','nova-solicitacao':'Nova Solicitação','minhas-solicitacoes':'Minhas Solicitações','solicitacao-detalhe':'Detalhe da Solicitação'};
     document.getElementById('page-title').textContent = titles[this.state.screen] || 'SIGEF';
     const el = document.getElementById('content');
     try { el.innerHTML = this.screenHTML(this.state.screen, this.state.params); } catch(e){ el.innerHTML = `<div class="card">Erro: ${U.esc(e.message)}</div>`; }
     const fn = this.events[this.state.screen]; if(fn) fn.call(this);
   },
   screenHTML(screen, params){
-    const map = {dashboard:()=>this.screenDashboard(),solicitacoes:()=>this.screenSolicitacoes(),'solicitacao-detalhe':()=>this.screenSolicitacaoDetalhe(params),fichas:()=>this.screenFichas(),entregas:()=>this.screenEntregas(),emprestimos:()=>this.screenEmprestimos(),devolucoes:()=>this.screenDevolucoes(),historico:()=>this.screenHistorico(),relatorios:()=>this.screenRelatorios(),planilha:()=>this.screenPlanilha(),'nova-solicitacao':()=>this.screenNovaSolicitacao(),'minhas-solicitacoes':()=>this.screenMinhasSolicitacoes(),'minhas-fichas-emprestadas':()=>this.screenMinhasEmprestadas(),'minhas-devolucoes':()=>this.screenMinhasDevolucoes(),'meu-historico':()=>this.screenMeuHistorico(),'minha-conta':()=>this.screenMinhaConta()};
+    const map = {dashboard:()=>this.screenDashboard(),solicitacoes:()=>this.screenSolicitacoes(),'solicitacao-detalhe':()=>this.screenSolicitacaoDetalhe(params),fichas:()=>this.screenFichas(),'nova-solicitacao':()=>this.screenNovaSolicitacao(),'minhas-solicitacoes':()=>this.screenMinhasSolicitacoes()};
     return (map[screen]||(()=>'<div class="card">Tela não encontrada.</div>'))();
   },
-  metricCard(label, value, type=''){ return `<div class="card metric ${type}"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
+  metricCard(label, value){ return `<div class="card metric"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
   
-  analisarFicha(ficha){
-    if(!ficha) return { status:'nao_encontrada', msg:'Ficha não encontrada na base. Sinalizar para conferência administrativa.' };
-    const emp = U.emprestimoAtivo(ficha.id);
-    if(emp) return { status:'emprestada', msg:`Emprestada para ${emp.recebedor_nome} (${emp.recebedor_setor}). Aguarde a devolução.` };
-    if(ficha.situacao_planilha === 'Arquivada') return { status:'disponivel', msg:'Disponível para separação.' };
-    return { status:'indisponivel', msg:`Indisponível: ${ficha.situacao_planilha}.` };
-  },
-  buscaFichaPorLote(lote){
-    const fichas = Store.get('fichas').filter(f => f.lote === lote);
-    if(fichas.length === 0) return null;
-    const disponivel = fichas.find(f => f.situacao_planilha === 'Arquivada' && !U.emprestimoAtivo(f.id));
-    if(disponivel) return disponivel;
-    return fichas[0];
-  },
-  screenDashboard(){ return Auth.current().perfil==='admin' ? this.dashboardAdmin() : this.dashboardSolicitante(); },
-  
-  dashboardAdmin(){
-    const sols = Store.get('solicitacoes');
-    const fichas = Store.get('fichas');
-    const emps = Store.get('emprestimos');
-    const devolPend = emps.filter(e=>e.status==='Devolução informada');
-    const totalEntregue = Store.get('itens_entrega').length;
-    const emCorrecao = fichas.filter(f=>f.situacao_planilha==='Em correção').length;
-    const pFO = fichas.filter(f=>f.situacao_planilha==='Pendente de FO').length;
-    const pRA = fichas.filter(f=>f.situacao_planilha==='Pendente de RA').length;
-    const arquivadas = fichas.filter(f=>f.situacao_planilha==='Arquivada').length;
-    const emprestadas = emps.filter(e=>e.status==='Emprestada'||e.status==='Devolução informada').length;
-
-    return `
-      <div class="grid grid-4">
-        ${this.metricCard('Total de solicitações recebidas', sols.length)}
-        ${this.metricCard('Solicitações aguardando atendimento', sols.filter(s=>s.situacao==='Recebida'||s.situacao==='Em análise').length,'blue')}
-        ${this.metricCard('Solicitações concluídas', sols.filter(s=>s.situacao==='Concluída').length,'green')}
-        ${this.metricCard('Total de fichas entregues', totalEntregue,'green')}
-        ${this.metricCard('Fichas emprestadas', emprestadas,'red')}
-        ${this.metricCard('Devoluções aguardando conferência', devolPend.length,'yellow')}
-        ${this.metricCard('Fichas em correção', emCorrecao,'yellow')}
-        ${this.metricCard('Fichas pendentes (FO/RA)', pFO + pRA,'orange')}
-        ${this.metricCard('Fichas arquivadas', arquivadas,'green')}
-      </div>
-    `;
-  },
-
-  dashboardSolicitante(){
-    const user = Auth.current();
-    const minhas = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
-    const meusEmps = Store.get('emprestimos').filter(e=>e.recebedor_nome===user.nome && (e.status==='Emprestada'||e.status==='Devolução informada'));
-    
-    return `
-      <div class="grid grid-4">
-        ${this.metricCard('Minhas solicitações', minhas.length)}
-        ${this.metricCard('Aguardando atendimento', minhas.filter(s=>s.situacao==='Recebida'||s.situacao==='Aguardando disponibilidade').length,'blue')}
-        ${this.metricCard('Concluídas', minhas.filter(s=>s.situacao==='Concluída').length,'green')}
-        ${this.metricCard('Fichas em meu poder', meusEmps.filter(e=>e.status==='Emprestada').length,'yellow')}
-      </div>
-      
-      <div class="section card">
-        <div class="section-head">
-          <h3>Minhas solicitações recentes</h3>
-          <button class="btn btn-primary btn-sm" data-nav="nova-solicitacao">+ Nova solicitação</button>
-        </div>
-        ${minhas.length ? minhas.slice().sort((a,b)=>b.data_criacao.localeCompare(a.data_criacao)).map(s=>`
-          <div class="analysis-item" style="cursor:pointer" data-sol-detail="${s.id}">
-            <div class="info"><strong>${U.esc(s.numero)}</strong><br><span class="reason">${U.fmtDateTime(s.data_criacao)}</span></div>
-            <div>${U.badgeSol(s.situacao)}</div>
-          </div>`).join('') : '<div class="table-empty">Nenhuma solicitação ainda.</div>'}
-      </div>
-    `;
-  },
-  
-  screenSolicitacoes(){
-    return `<div class="filter-bar"><input type="text" id="f-busca" placeholder="Buscar por número, solicitante..."><select id="f-sit"><option value="">Todas as situações</option><option>Recebida</option><option>Em análise</option><option>Parcialmente atendida</option><option>Aguardando disponibilidade</option><option>Concluída</option><option>Cancelada</option></select></div>
-      <div class="table-wrap"><table><thead><tr><th>Número</th><th>Solicitante</th><th>Setor</th><th>Data</th><th>Itens</th><th>Situação</th><th style="text-align:right;">Ações</th></tr></thead><tbody id="sol-tbody"></tbody></table></div>`;
-  },
-  renderSolicitacoesTable(){
-    const tbody = document.getElementById('sol-tbody'); if(!tbody) return;
-    const busca = (document.getElementById('f-busca')?.value||'').toLowerCase(), sit = document.getElementById('f-sit')?.value||'';
-    let sols = Store.get('solicitacoes');
-    if(busca) sols = sols.filter(s=>s.numero.toLowerCase().includes(busca) || s.solicitante_nome.toLowerCase().includes(busca));
-    if(sit) sols = sols.filter(s=>s.situacao===sit);
-    sols = sols.slice().sort((a,b)=>b.data_criacao.localeCompare(a.data_criacao));
-    if(!sols.length){ tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Nenhuma solicitação encontrada.</td></tr>`; return; }
-    tbody.innerHTML = sols.map(s=>{ const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===s.id); return `<tr>
-      <td><strong style="color:var(--primary); white-space:nowrap;">${U.esc(s.numero)}</strong></td>
-      <td>${U.esc(s.solicitante_nome)}</td>
-      <td>${U.esc(s.setor)}</td>
-      <td>${U.fmtDateTime(s.data_criacao)}</td>
-      <td>${itens.length}</td>
-      <td>${U.badgeSol(s.situacao)}</td>
-      <td class="table-actions"><button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Ver Detalhes</button></td>
-    </tr>`; }).join('');
-  },
-
-  screenSolicitacaoDetalhe(params){
-    const s = Store.get('solicitacoes').find(x=>x.id===Number(params.id)); if(!s) return '<div class="card">Solicitação não encontrada.</div>';
-    const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===s.id);
-    const entregas = Store.get('entregas').filter(e=>e.solicitacao_id===s.id);
-    const totalEntregue = Store.get('itens_entrega').filter(ie=>entregas.some(e=>e.id===ie.entrega_id)).length;
-    const total = itens.length, restantes = total - totalEntregue, pct = total ? Math.round(totalEntregue/total*100) : 0;
-    const user = Auth.current();
-    const backScreen = user.perfil === 'admin' ? 'solicitacoes' : 'minhas-solicitacoes';
-    return `<button class="btn btn-secondary btn-sm" data-nav="${backScreen}">← Voltar</button>
-      <div class="card" style="margin-top:14px;"><div class="section-head"><h2>${U.esc(s.numero)}</h2><div>${U.badgeSol(s.situacao)}</div></div><div class="info-list"><div class="info-row"><span class="k">Solicitante</span><span class="v">${U.esc(s.solicitante_nome)}</span></div><div class="info-row"><span class="k">Setor</span><span class="v">${U.esc(s.setor)}</span></div><div class="info-row"><span class="k">Data do pedido</span><span class="v">${U.fmtDateTime(s.data_criacao)}</span></div><div class="info-row"><span class="k">Observações</span><span class="v">${U.esc(s.observacoes||'—')}</span></div><div class="info-row"><span class="k">Progresso</span><span class="v">${totalEntregue}/${total} (${pct}%) — restam ${restantes}</span></div></div></div>
-      <div class="section card"><h3 style="margin-bottom:10px;">Itens</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação documental</th><th>Situação do item</th><th>Entregue</th></tr></thead><tbody>${itens.map(it=>{ const f = U.findFicha(it.ficha_id); const lote = f ? f.lote : (it.lote_snapshot||'—'), codigo = f ? f.codigo_produto : (it.codigo_snapshot||'—'); const sitPlan = f ? f.situacao_planilha : 'Não encontrada'; const entregue = Store.get('itens_entrega').some(ie=>ie.ficha_id===it.ficha_id && entregas.some(e=>e.id===ie.entrega_id)); return `<tr><td>${U.esc(lote)}</td><td>${U.esc(codigo)}</td><td>${U.badgeSit(sitPlan)}</td><td>${U.badgeSit(it.situacao_item)}</td><td>${entregue?'<span class="badge badge-green">Sim</span>':'<span class="badge badge-gray">Não</span>'}</td></tr>`; }).join('')}</tbody></table></div></div>
-      ${user.perfil==='admin' ? `<div class="section card"><div class="section-head"><h3>Entregas registradas</h3><button class="btn btn-primary btn-sm" data-nova-entrega="${s.id}" ${restantes<=0?'disabled':''}>+ Nova entrega</button></div>${entregas.length ? entregas.map(e=>{ const itensE = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); return `<div class="analysis-item"><div class="info"><strong>Entrega #${e.id}</strong> — ${U.fmtDateTime(e.timestamp_registro)}<br><span class="reason">Recebido por ${U.esc(e.nome_recebedor)} (${U.esc(e.setor_recebedor)}) — ${itensE.length} ficha(s)</span></div><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></div>`; }).join('') : '<div class="table-empty">Nenhuma entrega.</div>'}</div>` : ''}`;
-  },
-  
-  screenFichas(){
-    return `<div class="filter-bar"><input type="text" id="f-fichas-busca" placeholder="Buscar por lote ou código..."><select id="f-fichas-sit"><option value="">Todas as situações</option><option>Arquivada</option><option>Em correção</option><option>Pendente de FO</option><option>Pendente de RA</option><option>Em revisão</option></select><select id="f-fichas-aba"><option value="">Todas as abas</option><option>Arquivadas</option><option>Em Correção</option></select></div>
-      <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th><th>Aba</th><th>Empréstimo ativo</th><th>Última consulta</th></tr></thead><tbody id="fichas-tbody"></tbody></table></div>`;
-  },
-  renderFichasTable(){
-    const tbody = document.getElementById('fichas-tbody'); if(!tbody) return;
-    const busca = (document.getElementById('f-fichas-busca')?.value||'').toLowerCase(), sit = document.getElementById('f-fichas-sit')?.value||'', aba = document.getElementById('f-fichas-aba')?.value||'';
-    let fichas = Store.get('fichas');
-    if(busca) fichas = fichas.filter(f=>f.lote.toLowerCase().includes(busca)||f.codigo_produto.toLowerCase().includes(busca));
-    if(sit) fichas = fichas.filter(f=>f.situacao_planilha===sit);
-    if(aba) fichas = fichas.filter(f=>f.aba_origem===aba);
-    if(!fichas.length){ tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Nenhuma ficha encontrada.</td></tr>`; return; }
-    tbody.innerHTML = fichas.map(f=>{ const emp = U.emprestimoAtivo(f.id); return `<tr><td><strong>${U.esc(f.lote)}</strong></td><td>${U.esc(f.codigo_produto)}</td><td>${U.badgeSit(f.situacao_planilha)}</td><td>${U.esc(f.aba_origem)}</td><td>${emp ? U.badgeStatusEmp(emp.status)+' <small>('+U.esc(emp.recebedor_nome)+')</small>' : '—'}</td><td>${U.fmtDate(f.ultima_consulta)}</td></tr>`; }).join('');
-  },
-  screenEntregas(){
-    const entregas = Store.get('entregas').slice().sort((a,b)=>b.timestamp_registro.localeCompare(a.timestamp_registro));
-    return `<div class="table-wrap"><table><thead><tr><th>#</th><th>Solicitação</th><th>Recebedor</th><th>Setor</th><th>Responsável</th><th>Data</th><th>Fichas</th><th style="text-align:right;">Ação</th></tr></thead><tbody>${entregas.length ? entregas.map(e=>{ const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id); const qtd = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id).length; return `<tr><td>#${e.id}</td><td><strong>${U.esc(sol?.numero||'—')}</strong></td><td>${U.esc(e.nome_recebedor)}</td><td>${U.esc(e.setor_recebedor)}</td><td>${U.esc(e.responsavel_entrega)}</td><td>${U.fmtDateTime(e.timestamp_registro)}</td><td>${qtd}</td><td class="table-actions"><button class="btn btn-secondary btn-sm" data-imprimir="${e.id}">🖨️ Comprovante</button></td></tr>`; }).join('') : `<tr><td colspan="8" class="table-empty">Nenhuma entrega registrada.</td></tr>`}</tbody></table></div>`;
-  },
-  screenEmprestimos(){
-    const emps = Store.get('emprestimos').slice().sort((a,b)=>b.data_emprestimo.localeCompare(a.data_emprestimo));
-    return `<div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Recebedor</th><th>Setor</th><th>Empréstimo</th><th>Status</th><th style="text-align:right;">Ações</th></tr></thead><tbody>${emps.length ? emps.map(e=>{ const f = U.findFicha(e.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(e.recebedor_nome)}</td><td>${U.esc(e.recebedor_setor)}</td><td>${U.fmtDateTime(e.data_emprestimo)}</td><td>${U.badgeStatusEmp(e.status)}</td><td class="table-actions">${e.status==='Emprestada' ? `<button class="btn btn-warning btn-sm" data-info-devol="${e.id}">Receber declaração</button>` : ''}${e.status==='Devolução informada' ? `<button class="btn btn-success btn-sm" data-confirmar-devol="${e.id}">Confirmar recebimento</button>` : ''}</td></tr>`; }).join('') : `<tr><td colspan="7" class="table-empty">Nenhum empréstimo registrado.</td></tr>`}</tbody></table></div>`;
-  },
-  screenDevolucoes(){
-    const pend = Store.get('emprestimos').filter(e=>e.status==='Devolução informada');
-    const conferidas = Store.get('emprestimos').filter(e=>e.data_confirmacao_fisica);
-    return `<div class="section card"><h3 style="margin-bottom:12px;">Aguardando conferência física</h3>${pend.length ? pend.map(e=>{ const f = U.findFicha(e.ficha_id); return `<div class="analysis-item"><div class="info"><strong>Lote ${U.esc(f.lote)}</strong> — ${U.esc(f.codigo_produto)}<br><span class="reason">${U.esc(e.recebedor_nome)} (${U.esc(e.recebedor_setor)}) informou devolução em ${U.fmtDateTime(e.data_devolucao_informada)}</span></div><button class="btn btn-primary btn-sm" data-confirmar-devol="${e.id}">Conferir e confirmar</button></div>`; }).join('') : '<div class="table-empty">Nenhuma devolução aguardando conferência.</div>'}</div>
-      <div class="section card"><h3 style="margin-bottom:12px;">Devoluções já conferidas</h3>${conferidas.length ? conferidas.map(e=>{ const f = U.findFicha(e.ficha_id); return `<div class="analysis-item"><div class="info"><strong>Lote ${U.esc(f.lote)}</strong> — ${U.esc(f.codigo_produto)}<br><span class="reason">${U.esc(e.recebedor_nome)} · conferida em ${U.fmtDateTime(e.data_confirmacao_fisica)}</span></div>${U.badgeStatusEmp(e.status)}</div>`; }).join('') : '<div class="table-empty">Nenhuma devolução conferida ainda.</div>'}</div>`;
-  },
-  screenHistorico(){
-    return `<div class="filter-bar"><input type="text" id="f-hist-busca" placeholder="Buscar por lote, código ou pessoa..."><button class="btn btn-secondary btn-sm" id="btn-hist-limpar">Limpar</button></div><div class="card"><div class="timeline" id="hist-timeline"></div></div>`;
-  },
-  renderHistorico(){
-    const el = document.getElementById('hist-timeline'); if(!el) return;
-    const busca = (document.getElementById('f-hist-busca')?.value||'').toLowerCase();
-    let hist = Store.get('historico').slice().sort((a,b)=>b.data_hora.localeCompare(a.data_hora));
-    if(busca){ hist = hist.filter(h=>{ const f = U.findFicha(h.ficha_id); return (f && (f.lote.toLowerCase().includes(busca) || f.codigo_produto.toLowerCase().includes(busca))) || h.descricao.toLowerCase().includes(busca) || h.usuario_responsavel.toLowerCase().includes(busca); }); }
-    hist = hist.slice(0, 80);
-    if(!hist.length){ el.innerHTML = '<div class="table-empty">Nenhum registro no histórico.</div>'; return; }
-    el.innerHTML = hist.map(h=>{ const f = U.findFicha(h.ficha_id); const lotLabel = f ? `Lote ${f.lote} · ${f.codigo_produto}` : '—'; return `<div class="tl-item"><div class="tl-title">${U.esc(h.tipo_movimentacao)} — ${U.esc(lotLabel)}</div><div class="tl-desc">${U.esc(h.descricao)}</div><div class="tl-meta">${U.esc(h.usuario_responsavel)} · ${U.fmtDateTime(h.data_hora)}</div></div>`; }).join('');
-  },
-  screenRelatorios(){
-    return `<div class="card no-print"><div class="section-head"><h3>Relatórios</h3><div class="actions"><select id="rel-tipo"><option value="sols">Solicitações por período</option><option value="setor">Solicitações por setor</option><option value="entregues">Fichas entregues</option><option value="parciais">Entregas parciais</option><option value="emprestadas">Fichas emprestadas</option><option value="devol">Devoluções pendentes</option><option value="correcao">Fichas em correção</option><option value="indisp">Fichas indisponíveis</option><option value="ficha">Histórico de uma ficha</option></select><input type="date" id="rel-de" style="padding:8px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);"><input type="date" id="rel-ate" style="padding:8px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);"><input type="text" id="rel-ficha" placeholder="Lote (p/ ficha)" style="padding:8px 12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);width:140px;"><button class="btn btn-primary btn-sm" id="rel-gerar">Gerar</button><button class="btn btn-secondary btn-sm" id="rel-print">🖨️ Imprimir</button></div></div></div>
-      <div class="section card" id="rel-resultado"><div class="table-empty">Selecione o filtro e clique em Gerar.</div></div>`;
-  },
-  screenPlanilha(){
-    const lastSync = Store.get('fichas')[0]?.ultima_consulta || U.todayISO();
-    return `<div class="card"><div class="section-head"><h3>Simulação da planilha Excel</h3><div class="actions"><span style="font-size:12px;color:var(--text-muted);align-self:center;font-weight:500;">Última sincronização: <strong>${U.fmtDateTime(lastSync)}</strong></span><button class="btn btn-primary btn-sm" id="btn-sync">🔄 Atualizar agora</button></div></div><div class="demo-box" style="margin-top:10px;"><strong>Modo demonstração:</strong> os dados abaixo são fictícios. O app é somente leitura em relação à planilha. Nenhum arquivo real é acessado ou modificado.</div></div>
-      <div class="section"><h3 style="margin-bottom:10px;">Aba: Arquivadas</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th></tr></thead><tbody>${Store.get('fichas').filter(f=>f.aba_origem==='Arquivadas').map(f=>`<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.badgeSit(f.situacao_planilha)}</td></tr>`).join('')}</tbody></table></div></div>
-      <div class="section"><h3 style="margin-bottom:10px;">Aba: Em Correção</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th></tr></thead><tbody>${Store.get('fichas').filter(f=>f.aba_origem==='Em Correção').map(f=>`<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.badgeSit(f.situacao_planilha)}</td></tr>`).join('')}</tbody></table></div></div>`;
-  },
-  screenNovaSolicitacao(){
-    const items = this.state.novaItems || [];
-    return `<div class="card"><h3>Nova solicitação</h3><p style="margin-top:4px;font-size:14px;color:var(--text-muted);">Informe o número do lote. O sistema buscará a ficha correspondente.</p><div id="nova-itens" style="margin-top:20px;">${items.map((it,i)=>this.renderNovaItemRow(it,i)).join('') || '<div class="table-empty">Nenhum item adicionado.</div>'}</div><button class="btn btn-secondary btn-sm" id="btn-add-item" style="margin-top:12px;">+ Adicionar item</button><div class="field" style="margin-top:24px;"><label>Observações (opcional)</label><textarea id="nova-obs" rows="3" placeholder="Alguma informação adicional?"></textarea></div><div class="form-actions"><button class="btn btn-primary" id="btn-enviar-sol">Enviar solicitação</button></div></div>`;
-  },
-  renderNovaItemRow(it, i){
-    const ficha = it.lote ? this.buscaFichaPorLote(it.lote) : null;
-    const analise = it.lote ? this.analisarFicha(ficha) : null;
-    let analiseHtml = '';
-    if(analise) {
-      analiseHtml = `<div class="analise-box" style="grid-column:1/-1;font-size:13px;margin-top:8px;">${analise.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':analise.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':analise.status==='indisponivel'?'<span class="badge badge-yellow">Indisponível</span>':'<span class="badge badge-gray">Não encontrada</span>'} — <span style="color:var(--text-muted);font-weight:500;">${U.esc(analise.msg)}</span></div>`;
+  fichaEstaEmprestada(fichaId) {
+    if (!fichaId) return null;
+    const itens = Store.get('itens_solicitacao');
+    const emprestimoAtivo = itens.find(i => i.ficha_id === fichaId && (i.situacao_item === 'Entregue' || i.situacao_item === 'Devolução Solicitada'));
+    if (emprestimoAtivo) {
+      return Store.get('solicitacoes').find(s => s.id === emprestimoAtivo.solicitacao_id);
     }
-    return `<div class="item-row" data-idx="${i}" style="grid-template-columns:1fr auto;">
-      <div><label style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;">Lote</label><input type="text" class="nova-lote" value="${U.esc(it.lote||'')}" placeholder="Ex.: 45821" style="width:100%;padding:10px 16px;margin-top:4px;border:1px solid var(--border-color);border-radius:var(--radius-sm);"></div>
-      <button class="btn btn-danger btn-sm btn-rm-item" data-idx="${i}" style="height:42px;">✕</button>
-      ${analiseHtml}
-    </div>`;
+    return null;
   },
-  screenMinhasSolicitacoes(){
-    const user = Auth.current(); const sols = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id).slice().sort((a,b)=>b.data_criacao.localeCompare(a.data_criacao));
-    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Data</th><th>Itens</th><th>Situação</th><th style="text-align:right;">Ações</th></tr></thead><tbody>${sols.length ? sols.map(s=>{ const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===s.id).length; return `<tr><td><strong style="color:var(--primary);">${U.esc(s.numero)}</strong></td><td>${U.fmtDateTime(s.data_criacao)}</td><td>${itens}</td><td>${U.badgeSol(s.situacao)}</td><td class="table-actions"><button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Ver Detalhes</button></td></tr>`; }).join('') : `<tr><td colspan="5" class="table-empty">Nenhuma solicitação.</td></tr>`}</tbody></table></div>`;
+
+  getLotesStr(solId) {
+    const itens = Store.get('itens_solicitacao').filter(i => i.solicitacao_id === solId);
+    const lotes = itens.map(it => {
+      const f = U.findFicha(it.ficha_id);
+      return f ? f.lote : it.lote_snapshot;
+    });
+    return lotes.join(', ');
   },
-  screenMinhasEmprestadas(){
-    const user = Auth.current(); const emps = Store.get('emprestimos').filter(e=>e.recebedor_nome===user.nome && (e.status==='Emprestada'||e.status==='Devolução informada'));
-    return `<div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Empréstimo</th><th>Status</th><th style="text-align:right;">Ações</th></tr></thead><tbody>${emps.length ? emps.map(e=>{ const f = U.findFicha(e.ficha_id); return `<tr><td><strong>${U.esc(f.lote)}</strong></td><td>${U.esc(f.codigo_produto)}</td><td>${U.fmtDateTime(e.data_emprestimo)}</td><td>${U.badgeStatusEmp(e.status)}</td><td class="table-actions">${e.status==='Emprestada' ? `<button class="btn btn-warning btn-sm" data-declarar-devol="${e.id}">Informar devolução</button>` : 'Aguardando conferência'}</td></tr>`; }).join('') : `<tr><td colspan="5" class="table-empty">Nenhuma ficha em sua posse.</td></tr>`}</tbody></table></div>`;
+
+  getEntreguesCount(solId) {
+    const itens = Store.get('itens_solicitacao').filter(i => i.solicitacao_id === solId);
+    const entregues = itens.filter(i => ['Entregue', 'Devolução Solicitada', 'Devolvido'].includes(i.situacao_item)).length;
+    return `${entregues} / ${itens.length}`;
   },
-  screenMinhasDevolucoes(){
-    const user = Auth.current(); const emps = Store.get('emprestimos').filter(e=>e.recebedor_nome===user.nome && e.data_devolucao_informada);
-    return `<div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Declarada em</th><th>Status</th></tr></thead><tbody>${emps.length ? emps.map(e=>{ const f = U.findFicha(e.ficha_id); return `<tr><td><strong>${U.esc(f.lote)}</strong></td><td>${U.esc(f.codigo_produto)}</td><td>${U.fmtDateTime(e.data_devolucao_informada)}</td><td>${U.badgeStatusEmp(e.status)}</td></tr>`; }).join('') : `<tr><td colspan="4" class="table-empty">Nenhuma devolução declarada.</td></tr>`}</tbody></table></div>`;
+
+  getLoteFeedback(lote) {
+    if(!lote) return '';
+    const f = Store.get('fichas').find(x => x.lote === lote);
+    if(f) {
+      const solEmprestada = this.fichaEstaEmprestada(f.id);
+      let alerta = '';
+      if (solEmprestada) {
+        alerta = ` <span style="color:var(--danger); font-weight:600;">(Emprestada na ${solEmprestada.numero})</span>`;
+        return `<span style="color:var(--success); font-weight:600;">✓ ${f.nome_produto} (${f.codigo_produto})</span>${alerta}`;
+      }
+      if(f.situacao_planilha !== 'Arquivada') {
+        alerta = ` <span style="color:var(--warning); font-size:11px;">(Atenção: Ficha ${f.situacao_planilha})</span>`;
+      }
+      return `<span style="color:var(--success); font-weight:600;">✓ ${f.nome_produto} (${f.codigo_produto})</span>${alerta}`;
+    } else {
+      return `<span style="color:var(--danger);">✕ Lote não encontrado no sistema</span>`;
+    }
   },
-  screenMeuHistorico(){
-    const user = Auth.current(); const meusIds = new Set();
-    Store.get('emprestimos').filter(e=>e.recebedor_nome===user.nome).forEach(e=>meusIds.add(e.ficha_id));
-    Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id).forEach(s=>{ Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===s.id).forEach(i=>{ if(i.ficha_id) meusIds.add(i.ficha_id); }); });
-    const hist = Store.get('historico').filter(h=>meusIds.has(h.ficha_id)).sort((a,b)=>b.data_hora.localeCompare(a.data_hora));
-    return `<div class="card"><div class="timeline">${hist.length ? hist.slice(0,60).map(h=>{ const f = U.findFicha(h.ficha_id); return `<div class="tl-item"><div class="tl-title">${U.esc(h.tipo_movimentacao)} — Lote ${U.esc(f?.lote||'—')}</div><div class="tl-desc">${U.esc(h.descricao)}</div><div class="tl-meta">${U.fmtDateTime(h.data_hora)}</div></div>`; }).join('') : '<div class="table-empty">Nenhum registro.</div>'}</div></div>`;
-  },
-  screenMinhaConta(){
-    const user = Auth.current();
-    return `<div class="card" style="max-width:520px;"><h3>Minha conta</h3><form id="conta-form" style="margin-top:20px;"><div class="field"><label>Nome</label><input type="text" id="conta-nome" value="${U.esc(user.nome)}" required></div><div class="field"><label>E-mail</label><input type="email" id="conta-email" value="${U.esc(user.email)}" required></div><div class="field"><label>Senha</label><input type="password" id="conta-senha" value="${U.esc(user.senha)}" required></div><div class="info-row"><span class="k">Setor</span><span class="v">${U.esc(user.setor)}</span></div><div class="info-row"><span class="k">Perfil</span><span class="v">${U.esc(user.perfil)}</span></div><div class="form-actions"><button type="submit" class="btn btn-primary">Salvar alterações</button></div></form></div>`;
-  },
-  openModal(title, body, foot='', large=false){
-    document.body.classList.add('modal-open');
-    const el = document.createElement('div'); el.className = 'modal-overlay';
-    el.innerHTML = `<div class="modal ${large?'modal-lg':''}"><div class="modal-head"><h3>${title}</h3><button class="close-x" data-close>×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div>`;
-    document.body.appendChild(el);
-    el.querySelector('[data-close]').addEventListener('click', ()=>this.closeModal());
-    el.addEventListener('click', e=>{ if(e.target===el) this.closeModal(); });
-    return el;
-  },
-  closeModal(){ document.body.classList.remove('modal-open'); const m = document.querySelector('.modal-overlay'); if(m) m.remove(); },
-  
-  abrirComprovante(entregaId){
-    const e = Store.get('entregas').find(x=>x.id===entregaId); if(!e) return;
-    const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id);
-    const itensE = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id);
-    const linhas = itensE.map(ie=>{ const f = U.findFicha(ie.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>Ficha Documental</td></tr>`; }).join('');
+
+  atualizarStatusSolicitacao(solId) {
+    const todosItens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id === solId);
+    const qtdPendentes = todosItens.filter(i=>i.situacao_item === 'Pendente').length;
+    const qtdSeparando = todosItens.filter(i=>i.situacao_item === 'Separando').length;
+    const qtdEntregues = todosItens.filter(i=>i.situacao_item === 'Entregue').length;
+    const qtdDevolSolicitada = todosItens.filter(i=>i.situacao_item === 'Devolução Solicitada').length;
+    const qtdDevolvidos = todosItens.filter(i=>i.situacao_item === 'Devolvido').length;
     
+    let novoSituacao = 'Pendente';
+    if (qtdDevolvidos === todosItens.length) { novoSituacao = 'Finalizada'; } 
+    else if (qtdDevolSolicitada > 0) { novoSituacao = 'Aguardando Confirmação'; } 
+    else if (qtdEntregues > 0) {
+      if (qtdSeparando > 0 || qtdPendentes > 0) { novoSituacao = 'Em Separação'; } 
+      else { novoSituacao = 'Aguardando Devolução'; }
+    } else if (qtdSeparando > 0) { novoSituacao = 'Em Separação'; }
+    
+    Store.update('solicitacoes', solId, { situacao: novoSituacao });
+  },
+
+  abrirComprovante(solId) {
+    const sol = Store.get('solicitacoes').find(s => s.id === solId);
+    if(!sol) return;
+    
+    // FILTRO ESTRITO: Pega APENAS os itens com status 'Separando'
+    const itensFiltrados = Store.get('itens_solicitacao').filter(i => 
+      i.solicitacao_id === solId && 
+      i.situacao_item === 'Separando'
+    );
+
+    if (itensFiltrados.length === 0) {
+      alert('Atenção: Não há fichas com o status "Separando" nesta solicitação. Inicie a separação das fichas antes de imprimir o comprovante.');
+      return;
+    }
+
+    const linhas = itensFiltrados.map(it => {
+      const f = U.findFicha(it.ficha_id);
+      return `<tr>
+        <td>${f ? f.lote : it.lote_snapshot}</td>
+        <td>${f ? f.codigo_produto : '-'}</td>
+        <td>${f ? f.nome_produto : '-'}</td>
+      </tr>`;
+    }).join('');
+
+    // NOVO DESIGN DO COMPROVANTE
     const body = `
-      <div class="receipt" style="padding: 20px;">
-        <div class="receipt-head">
-          <h1>SIGEF</h1>
-          <p>Sistema Integrado de Gestão de Fichas</p>
-          <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
-            <h2 style="font-size: 18px; font-weight: 700; margin: 0; color: var(--text-main);">COMPROVANTE DE ENTREGA</h2>
-            <p style="font-size: 14px; margin: 4px 0 0 0; color: var(--text-muted);">Solicitação: <strong>${U.esc(sol?.numero||'—')}</strong> | Entrega: <strong>#${e.id}</strong></p>
+      <div class="receipt">
+        <div class="receipt-header">
+          <div class="logo">SIGEF<small>Sistema Integrado de Gestão de Fichas</small></div>
+          <div class="doc-info">
+            <h2>COMPROVANTE DE ENTREGA</h2>
+            <p>Solicitação: <b>${sol.numero}</b></p>
+            <p>Data: ${U.fmtDate(sol.data_criacao)}</p>
           </div>
         </div>
-
+        
         <div class="receipt-info-grid">
-          <div>
+          <div class="info-item">
             <strong>Solicitante</strong>
-            <span>${U.esc(sol?.solicitante_nome||'—')}</span>
+            <span>${sol.solicitante_nome}</span>
           </div>
-          <div>
+          <div class="info-item">
             <strong>Setor</strong>
-            <span>${U.esc(sol?.setor||'—')}</span>
-          </div>
-          <div>
-            <strong>Data da Entrega</strong>
-            <span>${U.fmtDate(e.data_entrega)}</span>
-          </div>
-          <div>
-            <strong>Responsável</strong>
-            <span>${U.esc(e.responsavel_entrega)}</span>
+            <span>${sol.setor}</span>
           </div>
         </div>
 
@@ -380,166 +224,420 @@ const App = {
             <tr>
               <th>Lote</th>
               <th>Código</th>
-              <th>Descrição</th>
+              <th>Descrição do Produto</th>
             </tr>
           </thead>
-          <tbody>
-            ${linhas}
-          </tbody>
+          <tbody>${linhas}</tbody>
         </table>
-        
-        <p style="font-size: 14px; font-weight: 500; margin-bottom: 60px;">Quantidade total de fichas nesta entrega: <strong style="font-size: 16px; color: var(--primary);">${itensE.length}</strong></p>
 
-        <div class="receipt-footer">
-          <div class="receipt-sign">
-            <div class="line"></div>
-            <p>Assinatura do Solicitante</p>
+        <div class="receipt-total">
+          Quantidade de fichas nesta entrega: <span>${itensFiltrados.length}</span>
+        </div>
+
+        <div class="receipt-signatures">
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <span>Assinatura do Solicitante</span>
           </div>
-          <div class="receipt-sign">
-            <div class="line"></div>
-            <p>Data do Recebimento</p>
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <span>Data do Recebimento</span>
           </div>
         </div>
-      </div>`;
-      
-    this.openModal('Comprovante de entrega', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print">🖨️ Imprimir</button>`, true);
-    document.getElementById('btn-print').addEventListener('click', ()=>window.print());
+      </div>
+    `;
+
+    this.openModal('Imprimir Comprovante', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print-receipt">🖨️ Imprimir</button>`, true);
+    
+    document.getElementById('btn-print-receipt').addEventListener('click', () => {
+      // Pequeno delay para garantir que a interface do modal terminou de renderizar antes de abrir o print
+      setTimeout(() => window.print(), 100);
+    });
   },
 
-  abrirNovaEntrega(solicitacaoId){
-    const sol = Store.get('solicitacoes').find(s=>s.id===solicitacaoId);
-    const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===solicitacaoId);
-    const entregas = Store.get('entregas').filter(e=>e.solicitacao_id===solicitacaoId);
-    const jaEntregues = new Set(); Store.get('itens_entrega').filter(ie=>entregas.some(e=>e.id===ie.entrega_id)).forEach(ie=>jaEntregues.add(ie.ficha_id));
-    const disponiveis = itens.filter(it=>{ if(jaEntregues.has(it.ficha_id)) return false; const f = U.findFicha(it.ficha_id); if(!f || f.situacao_planilha !== 'Arquivada' || U.emprestimoAtivo(f.id)) return false; return true; });
-    if(!disponiveis.length){ U.toast('Nenhum item disponível para nova entrega.','warning'); return; }
-    const rows = disponiveis.map(it=>{ const f = U.findFicha(it.ficha_id); return `<tr>
-      <td style="text-align:center;"><input type="checkbox" data-ficha-id="${it.ficha_id}" class="entrega-check" style="width:18px;height:18px;cursor:pointer;"></td>
-      <td style="font-weight:600;">${U.esc(f.lote)}</td>
-      <td>${U.esc(f.codigo_produto)}</td>
-    </tr>`; }).join('');
-    const hoje = new Date().toISOString().slice(0,10);
-    const body = `<p style="font-size:14px;margin-bottom:16px;color:var(--text-muted);">Marque os itens que serão entregues agora.</p><div class="table-wrap"><table><thead><tr><th style="width:60px;text-align:center;">Sel.</th><th>Lote</th><th>Código</th></tr></thead><tbody>${rows}</tbody></table></div><div class="form-grid" style="margin-top:24px;"><div class="field"><label>Recebido por</label><input type="text" id="entrega-recebedor" value="${U.esc(sol.solicitante_nome)}" required></div><div class="field"><label>Setor do recebedor</label><input type="text" id="entrega-setor" value="${U.esc(sol.setor)}" required></div><div class="field"><label>Data da entrega</label><input type="date" id="entrega-data" value="${hoje}" required></div></div>`;
-    this.openModal('Registrar entrega', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" id="btn-salvar-entrega">Confirmar entrega</button>`, true);
-    document.getElementById('btn-salvar-entrega').addEventListener('click', ()=>this.salvarEntrega(solicitacaoId));
-  },
-  salvarEntrega(solicitacaoId){
-    const sel = [...document.querySelectorAll('.entrega-check:checked')].map(c=>Number(c.dataset.fichaId));
-    if(!sel.length){ U.toast('Selecione pelo menos um item.','error'); return; }
-    const recebedor = document.getElementById('entrega-recebedor').value.trim(), setor = document.getElementById('entrega-setor').value.trim(), dataStr = document.getElementById('entrega-data').value;
-    if(!recebedor || !setor || !dataStr){ U.toast('Preencha todos os campos.','error'); return; }
+  screenDashboard(){ 
     const user = Auth.current();
-    const entrega = Store.add('entregas', { solicitacao_id: solicitacaoId, nome_recebedor: recebedor, setor_recebedor: setor, responsavel_entrega: user.nome, data_entrega: new Date(dataStr+'T12:00:00').toISOString(), timestamp_registro: U.todayISO() });
-    sel.forEach(fichaId=>{
-      Store.add('itens_entrega', { entrega_id: entrega.id, ficha_id: fichaId });
-      const item = Store.get('itens_solicitacao').find(i=>i.solicitacao_id===solicitacaoId && i.ficha_id===fichaId); if(item) Store.update('itens_solicitacao', item.id, { situacao_item: 'Entregue' });
-      
-      Store.add('historico', { ficha_id: fichaId, usuario_responsavel: user.nome, tipo_movimentacao: 'Entrega', descricao: `Entregue na solicitação (entrega #${entrega.id}) para ${recebedor}.`, data_hora: U.todayISO() });
-    });
-    const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===solicitacaoId);
-    const entregues = itens.filter(i=>i.situacao_item==='Entregue').length;
-    Store.update('solicitacoes', solicitacaoId, { situacao: entregues === itens.length ? 'Concluída' : 'Parcialmente atendida' });
-    this.closeModal(); U.toast('Entrega registrada! Deseja imprimir o comprovante?','success'); this.abrirComprovante(entrega.id); this.renderScreen();
-  },
-  abrirConfirmarDevolucao(empId){
-    const e = Store.get('emprestimos').find(x=>x.id===empId); const f = U.findFicha(e.ficha_id);
-    const body = `<p style="font-size:14px;">Confirme o recebimento físico da ficha <strong>Lote ${U.esc(f.lote)} — ${U.esc(f.codigo_produto)}</strong>.</p><div class="field" style="margin-top:20px;"><label>Resultado da conferência</label><select id="conf-resultado"><option value="Recebida e conferida">Recebida e arquivada</option><option value="Devolvida para correção">Recebida, mas encaminhada para correção</option></select></div>`;
-    this.openModal('Conferência física', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" id="btn-confirmar-devol">Confirmar</button>`);
-    document.getElementById('btn-confirmar-devol').addEventListener('click', ()=>{
-      const resultado = document.getElementById('conf-resultado').value; const user = Auth.current();
-      Store.update('emprestimos', empId, { status: resultado, data_confirmacao_fisica: U.todayISO() });
-      Store.add('historico', { ficha_id: e.ficha_id, usuario_responsavel: user.nome, tipo_movimentacao: 'Confirmação física', descricao: `Devolução conferida. Resultado: ${resultado}.`, data_hora: U.todayISO() });
-      this.closeModal(); U.toast('Devolução conferida!','success'); this.renderScreen();
-    });
-  },
-  abrirDeclararDevolucao(empId){
-    const e = Store.get('emprestimos').find(x=>x.id===empId); const f = U.findFicha(e.ficha_id);
-    const body = `<p style="font-size:14px;">Você está informando a devolução da ficha <strong>Lote ${U.esc(f.lote)} — ${U.esc(f.codigo_produto)}</strong>.</p><p style="font-size:13px;color:var(--text-muted);margin-top:12px;">O administrador do setor precisará confirmar o recebimento físico antes de encerrar o empréstimo.</p>`;
-    this.openModal('Informar devolução', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-warning" id="btn-confirmar-declaracao">Confirmar devolução</button>`);
-    document.getElementById('btn-confirmar-declaracao').addEventListener('click', ()=>{
-      Store.update('emprestimos', empId, { status: 'Devolução informada', data_devolucao_informada: U.todayISO() });
-      Store.add('historico', { ficha_id: e.ficha_id, usuario_responsavel: e.recebedor_nome, tipo_movimentacao: 'Devolução informada', descricao: 'Usuário informou a devolução da ficha.', data_hora: U.todayISO() });
-      this.closeModal(); U.toast('Devolução declarada! Aguarde a conferência do administrador.','success'); this.renderScreen();
-    });
-  },
-  gerarRelatorio(){
-    const tipo = document.getElementById('rel-tipo').value, de = document.getElementById('rel-de').value, ate = document.getElementById('rel-ate').value, fichaBusca = document.getElementById('rel-ficha').value.trim();
-    const res = document.getElementById('rel-resultado'); let html = '';
-    if(tipo === 'sols' || tipo === 'setor'){
-      let sols = Store.get('solicitacoes');
-      if(de) sols = sols.filter(s=>s.data_criacao.slice(0,10) >= de);
-      if(ate) sols = sols.filter(s=>s.data_criacao.slice(0,10) <= ate);
-      if(tipo === 'setor'){ const agrupado = {}; sols.forEach(s=>{ agrupado[s.setor] = (agrupado[s.setor]||0) + 1; }); html = `<table><thead><tr><th>Setor</th><th>Total de Solicitações</th></tr></thead><tbody>${Object.entries(agrupado).map(([setor, qtd])=>`<tr><td>${U.esc(setor)}</td><td>${qtd}</td></tr>`).join('')}</tbody></table>`; }
-      else { html = `<table><thead><tr><th>Número</th><th>Solicitante</th><th>Setor</th><th>Data</th><th>Situação</th></tr></thead><tbody>${sols.map(s=>`<tr><td><strong>${U.esc(s.numero)}</strong></td><td>${U.esc(s.solicitante_nome)}</td><td>${U.esc(s.setor)}</td><td>${U.fmtDate(s.data_criacao)}</td><td>${U.badgeSol(s.situacao)}</td></tr>`).join('')}</tbody></table>`; }
-    } else if(tipo === 'entregues' || tipo === 'parciais'){
-      const entregas = Store.get('entregas'); const rows = [];
-      entregas.forEach(e=>{ const itens = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id); if(tipo === 'parciais' && itens.length === 0) return; const sol = Store.get('solicitacoes').find(s=>s.id===e.solicitacao_id); rows.push(`<tr><td>#${e.id}</td><td><strong>${U.esc(sol?.numero||'—')}</strong></td><td>${U.esc(e.nome_recebedor)}</td><td>${itens.length} fichas</td><td>${U.fmtDate(e.timestamp_registro)}</td></tr>`); });
-      html = `<table><thead><tr><th>ID</th><th>Solicitação</th><th>Recebedor</th><th>Qtd</th><th>Data</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
-    } else if(tipo === 'emprestadas'){
-      const emps = Store.get('emprestimos').filter(e=>e.status==='Emprestada'||e.status==='Devolução informada');
-      html = `<table><thead><tr><th>Lote</th><th>Código</th><th>Recebedor</th><th>Setor</th><th>Data Emp.</th><th>Status</th></tr></thead><tbody>${emps.map(e=>{const f = U.findFicha(e.ficha_id); return `<tr><td><strong>${U.esc(f.lote)}</strong></td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(e.recebedor_nome)}</td><td>${U.esc(e.recebedor_setor)}</td><td>${U.fmtDate(e.data_emprestimo)}</td><td>${U.badgeStatusEmp(e.status)}</td></tr>`;}).join('')}</tbody></table>`;
-    } else if(tipo === 'devol'){
-      const pend = Store.get('emprestimos').filter(e=>e.status==='Devolução informada');
-      html = `<table><thead><tr><th>Lote</th><th>Código</th><th>Recebedor</th><th>Data Dev.</th></tr></thead><tbody>${pend.map(e=>{const f = U.findFicha(e.ficha_id); return `<tr><td><strong>${U.esc(f.lote)}</strong></td><td>${U.esc(f.codigo_produto)}</td><td>${U.esc(e.recebedor_nome)}</td><td>${U.fmtDate(e.data_devolucao_informada)}</td></tr>`;}).join('')}</tbody></table>`;
-    } else if(tipo === 'correcao' || tipo === 'indisp'){
-      let fichas = Store.get('fichas');
-      if(tipo === 'correcao') fichas = fichas.filter(f=>f.situacao_planilha==='Em correção');
-      else fichas = fichas.filter(f=>f.situacao_planilha!=='Arquivada');
-      html = `<table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th><th>Aba</th></tr></thead><tbody>${fichas.map(f=>`<tr><td><strong>${U.esc(f.lote)}</strong></td><td>${U.esc(f.codigo_produto)}</td><td>${U.badgeSit(f.situacao_planilha)}</td><td>${U.esc(f.aba_origem)}</td></tr>`).join('')}</tbody></table>`;
-    } else if(tipo === 'ficha'){
-      if(!fichaBusca){ U.toast('Informe o lote para buscar o histórico.','warning'); return; }
-      const fichas = Store.get('fichas').filter(f=>f.lote.includes(fichaBusca));
-      if(!fichas.length){ U.toast('Nenhuma ficha encontrada.','error'); return; }
-      html = fichas.map(f=>{ const hist = Store.get('historico').filter(h=>h.ficha_id===f.id).sort((a,b)=>b.data_hora.localeCompare(a.data_hora)); return `<h4 style="margin:16px 0 12px;">Lote <strong>${U.esc(f.lote)}</strong> — ${U.esc(f.codigo_produto)} (${U.esc(f.situacao_planilha)})</h4><div class="timeline" style="padding-left:24px;">${hist.map(h=>`<div class="tl-item"><div class="tl-title">${U.esc(h.tipo_movimentacao)}</div><div class="tl-desc">${U.esc(h.descricao)}</div><div class="tl-meta">${U.esc(h.usuario_responsavel)} · ${U.fmtDateTime(h.data_hora)}</div></div>`).join('')}</div>`; }).join('');
+    if(user.perfil === 'admin') {
+      const sols = Store.get('solicitacoes');
+      const fichas = Store.get('fichas');
+      const itens = Store.get('itens_solicitacao');
+
+      const qtdFichasEntregues = itens.filter(i => i.situacao_item === 'Entregue').length;
+      const qtdAguardandoConfirmacao = itens.filter(i => i.situacao_item === 'Devolução Solicitada').length;
+      const qtdFichasDevolvidas = itens.filter(i => i.situacao_item === 'Devolvido').length;
+      const solConcluidas = sols.filter(s=>s.situacao==='Finalizada').length;
+
+      const fArquivadas = fichas.filter(f=>f.situacao_planilha==='Arquivada').length;
+      const fCorrecao = fichas.filter(f=>f.situacao_planilha==='Em correção').length;
+      const fFP = fichas.filter(f=>f.situacao_planilha==='Pendente de FP').length;
+      const fRA = fichas.filter(f=>f.situacao_planilha==='Pendente de RA').length;
+      const fRevisao = fichas.filter(f=>f.situacao_planilha==='Em revisão').length;
+      const fNaoEncontradas = itens.filter(i => i.ficha_id === null).length;
+
+      return `
+        <div class="grid grid-4">
+          ${this.metricCard('Fichas Entregues', qtdFichasEntregues)}
+          ${this.metricCard('Aguardando Confirmação', qtdAguardandoConfirmacao)}
+          ${this.metricCard('Fichas Devolvidas', qtdFichasDevolvidas)}
+          ${this.metricCard('Solicitações Finalizadas', solConcluidas)}
+        </div>
+
+        <div class="section card">
+          <div class="section-head"><h3>Status do Acervo de Fichas</h3></div>
+          <div class="grid grid-3" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--success);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fArquivadas}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Arquivadas</div>
+            </div>
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fCorrecao}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Em Correção</div>
+            </div>
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fFP}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Pendente de FP</div>
+            </div>
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fRA}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Pendente de RA</div>
+            </div>
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--info);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fRevisao}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Em Revisão</div>
+            </div>
+            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--danger);">
+              <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fNaoEncontradas}</div>
+              <div style="font-size:13px; color:var(--text-muted);">Não Encontradas</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section card">
+          <div class="section-head"><h3>Ações Rápidas</h3></div>
+          <div class="table-actions">
+            <button class="btn btn-primary" data-nav="solicitacoes">Abrir Fila de Solicitações</button>
+            <button class="btn btn-secondary" data-nav="fichas">Consultar Acervo Completo</button>
+          </div>
+        </div>`;
+    } else {
+      const minhas = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
+      return `
+        <div class="grid grid-3">
+          ${this.metricCard('Minhas Solicitações', minhas.length)}
+          ${this.metricCard('Aguardando Devolução', minhas.filter(s=>s.situacao==='Aguardando Devolução').length)}
+          ${this.metricCard('Finalizadas', minhas.filter(s=>s.situacao==='Finalizada').length)}
+        </div>
+        <div class="section card">
+          <div class="section-head"><h3>Últimas Solicitações</h3><button class="btn btn-primary btn-sm" data-nav="nova-solicitacao">+ Criar Nova</button></div>
+          ${minhas.slice(0,5).map(s=>`<div style="padding:12px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; cursor:pointer;" data-sol-detail="${s.id}"><strong>${s.numero}</strong> ${U.badgeSol(s.situacao)}</div>`).join('') || '<div class="table-empty">Nenhuma solicitação criada.</div>'}
+        </div>`;
     }
-    res.innerHTML = `<h3 style="margin-bottom:16px;">Resultado</h3>${html || '<div class="table-empty">Sem dados para o filtro.</div>'}`;
   },
+  
+  screenSolicitacoes(){
+    return `<div class="table-wrap"><table><thead><tr>
+      <th>Número</th><th>Lotes</th><th>Entregues</th><th>Solicitante</th><th>Setor</th><th>Data</th><th>Situação</th><th>Ações</th>
+    </tr></thead><tbody>
+      ${Store.get('solicitacoes').map(s=>{
+        const temItensParaImprimir = Store.get('itens_solicitacao').some(i => 
+          i.solicitacao_id === s.id && i.situacao_item === 'Separando'
+        );
+
+        return `<tr>
+          <td><strong>${s.numero}</strong></td>
+          <td>${this.getLotesStr(s.id)}</td>
+          <td><span style="font-weight:600; color:var(--primary);">${this.getEntreguesCount(s.id)}</span></td>
+          <td>${s.solicitante_nome}</td>
+          <td>${s.setor}</td>
+          <td>${U.fmtDate(s.data_criacao)}</td>
+          <td>${U.badgeSol(s.situacao)}</td>
+          <td class="table-actions">
+            <button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Abrir</button>
+            ${temItensParaImprimir ? `<button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+  },
+  
+  screenSolicitacaoDetalhe(params){
+    const s = Store.get('solicitacoes').find(x=>x.id===Number(params.id)); if(!s) return '<div class="card">Não encontrada.</div>';
+    const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===s.id);
+    const user = Auth.current();
+    
+    const getAcaoBtn = (it) => {
+      const f = U.findFicha(it.ficha_id);
+      if(!f) return U.badgeItem(it.situacao_item);
+
+      const solEmprestada = this.fichaEstaEmprestada(f.id);
+
+      if(user.perfil === 'solicitante') {
+        if(it.situacao_item === 'Entregue') return `<button class="btn btn-warning btn-sm" data-acao-item="${it.id}" data-acao="solicitar-devolucao">Informar Devolução</button>`;
+        if(it.situacao_item === 'Devolução Solicitada') return `<span class="badge badge-purple" style="font-size:11px;">Aguardando Confirmação</span>`;
+        if(it.situacao_item === 'Devolvido') return `<span style="color:var(--success);font-weight:600;">✓ Devolvido</span>`;
+        if(it.situacao_item === 'Pendente' && (solEmprestada || f.situacao_planilha !== 'Arquivada')) {
+           return `<span style="color:var(--danger); font-size:12px;">Aguardar disponibilidade</span>`;
+        }
+        return U.badgeItem(it.situacao_item);
+      } else {
+        if(it.situacao_item === 'Pendente') {
+           if (solEmprestada && solEmprestada.id !== s.id) return `<span class="badge badge-red">Emprestada (${solEmprestada.numero})</span>`;
+           return `<button class="btn btn-secondary btn-sm" data-acao-item="${it.id}" data-acao="separar">Iniciar Separação</button>`;
+        }
+        
+        if(it.situacao_item === 'Separando') {
+          if (solEmprestada && solEmprestada.id !== s.id) {
+            return `<span class="badge badge-red">Emprestada (${solEmprestada.numero})</span>`;
+          }
+          if (f.situacao_planilha !== 'Arquivada') {
+            return `<button class="btn btn-warning btn-sm" data-acao-item="${it.id}" data-acao="entregar" data-pendencia="true" data-lote="${f.lote}" data-status="${f.situacao_planilha}">⚠️ Entrega Urgente</button>`;
+          }
+          return `<button class="btn btn-success btn-sm" data-acao-item="${it.id}" data-acao="entregar" data-pendencia="false">Confirmar Entrega</button>`;
+        }
+        
+        if(it.situacao_item === 'Devolução Solicitada') return `<button class="btn btn-primary btn-sm" data-acao-item="${it.id}" data-acao="confirmar-devolucao">Confirmar Recebimento</button>`;
+        if(it.situacao_item === 'Devolvido') return `<span style="color:var(--success);font-weight:600;">✓ Devolvido</span>`;
+        return U.badgeItem(it.situacao_item);
+      }
+    };
+
+    const temItensParaImprimir = itens.some(i => i.situacao_item === 'Separando');
+
+    return `<div style="display:flex; justify-content:space-between; align-items:center;">
+      <button class="btn btn-secondary btn-sm" data-nav="${user.perfil==='admin'?'solicitacoes':'minhas-solicitacoes'}">← Voltar</button>
+      ${temItensParaImprimir ? `<button class="btn btn-primary btn-sm" data-print-sol="${s.id}">🖨️ Imprimir Comprovante</button>` : ''}
+    </div>
+      <div class="card" style="margin-top:20px;">
+        <div class="section-head"><h2>${s.numero}</h2>${U.badgeSol(s.situacao)}</div>
+        <p style="color:var(--text-muted);margin-bottom:20px;">Solicitante: <strong>${s.solicitante_nome}</strong> | Setor: <strong>${s.setor}</strong> | Data: ${U.fmtDate(s.data_criacao)}</p>
+        
+        <h3 style="margin-bottom:16px;">Fichas da Solicitação</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Status do Acervo</th><th>Situação do Pedido</th><th>Ação</th></tr></thead>
+            <tbody>
+              ${itens.map(it=>{
+                const f = U.findFicha(it.ficha_id);
+                return `<tr>
+                  <td><strong>${f ? f.lote : it.lote_snapshot}</strong></td>
+                  <td>${f ? f.codigo_produto : '<span style="color:var(--danger);">Não encontrado</span>'}</td>
+                  <td>${f ? f.nome_produto : '-'}</td>
+                  <td>${f ? U.badgeFicha(f.situacao_planilha) : '-'}</td>
+                  <td>${U.badgeItem(it.situacao_item)}</td>
+                  <td>${getAcaoBtn(it)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  },
+  
+  screenNovaSolicitacao(){
+    const items = this.state.novaItems || [];
+    return `<div class="card">
+      <h3>Nova solicitação</h3>
+      <p style="color:var(--text-muted);margin:8px 0 20px;">Adicione quantos lotes precisar. Todos serão agrupados nesta mesma solicitação.</p>
+      <div id="nova-itens">${items.map((it,i)=>`
+        <div class="item-row" data-idx="${i}" style="display:flex; flex-direction:column; gap:4px; margin-bottom:16px;">
+          <div style="display:flex; gap:12px;">
+            <input type="text" class="nova-lote" value="${it.lote||''}" placeholder="Digite o Lote (ex: 45821)" style="padding:10px;border:1px solid var(--border);border-radius:8px;flex:1;">
+            <button class="btn btn-danger btn-rm-item" data-idx="${i}">X</button>
+          </div>
+          <div class="lote-feedback" id="feedback-${i}" style="font-size:13px; margin-top:4px;">${it.lote ? this.getLoteFeedback(it.lote) : ''}</div>
+        </div>`).join('')}
+      </div>
+      <button class="btn btn-secondary btn-sm" id="btn-add-item" style="margin-top:12px;">+ Adicionar outro Lote</button>
+      <div class="form-actions" style="margin-top:24px;"><button class="btn btn-primary" id="btn-enviar-sol">Enviar Solicitação</button></div>
+    </div>`;
+  },
+  
+  screenMinhasSolicitacoes(){
+    const user = Auth.current();
+    const sols = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
+    return `<div class="table-wrap"><table><thead><tr><th>Número</th><th>Lotes</th><th>Entregues</th><th>Setor</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
+      ${sols.map(s=>{
+        const temItensParaImprimir = Store.get('itens_solicitacao').some(i => 
+          i.solicitacao_id === s.id && i.situacao_item === 'Separando'
+        );
+
+        return `
+        <tr>
+          <td><strong>${s.numero}</strong></td>
+          <td>${this.getLotesStr(s.id)}</td>
+          <td><span style="font-weight:600; color:var(--primary);">${this.getEntreguesCount(s.id)}</span></td>
+          <td>${s.setor}</td>
+          <td>${U.fmtDate(s.data_criacao)}</td>
+          <td>${U.badgeSol(s.situacao)}</td>
+          <td class="table-actions">
+            ${s.situacao === 'Aguardando Devolução' 
+              ? `<button class="btn btn-warning btn-sm" data-sol-detail="${s.id}">Devolver Fichas</button>` 
+              : `<button class="btn btn-secondary btn-sm" data-sol-detail="${s.id}">Ver Detalhes</button>`}
+            ${temItensParaImprimir ? `<button class="btn btn-secondary btn-sm" data-print-sol="${s.id}" title="Imprimir Comprovante">🖨️</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+  },
+  
+  screenFichas(){ 
+    const user = Auth.current();
+    const isAdmin = user.perfil === 'admin';
+    return `
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-head">
+          <h3>Acervo de Fichas</h3>
+          ${isAdmin ? `<div class="table-actions"><button class="btn btn-secondary btn-sm" id="btn-importar-planilha">📊 Importar Planilha</button><button class="btn btn-primary btn-sm" id="btn-add-ficha">+ Adicionar Ficha</button></div>` : ''}
+        </div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Produto</th><th>Situação</th>${isAdmin ? '<th>Ações</th>' : ''}</tr></thead><tbody>
+      ${Store.get('fichas').map(f=>`<tr>
+        <td><strong>${f.lote}</strong></td><td>${f.codigo_produto}</td><td>${f.nome_produto}</td><td>${U.badgeFicha(f.situacao_planilha)}</td>
+        ${isAdmin ? `<td><button class="btn btn-secondary btn-sm" data-edit-ficha="${f.id}">Editar Status</button></td>` : ''}
+      </tr>`).join('')}
+    </tbody></table></div>`; 
+  },
+  
   events: {
     dashboard: function(){ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); },
-    solicitacoes: function(){ this.renderSolicitacoesTable(); ['f-busca','f-sit'].forEach(id=>{ document.getElementById(id)?.addEventListener('input', ()=>this.renderSolicitacoesTable()); }); document.getElementById('sol-tbody').addEventListener('click', e=>{ const btn = e.target.closest('[data-sol-detail]'); if(btn) this.navigate('solicitacao-detalhe', {id:btn.dataset.solDetail}); }); },
-    'solicitacao-detalhe': function(){ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); document.querySelectorAll('[data-nova-entrega]').forEach(b=>b.addEventListener('click', ()=>this.abrirNovaEntrega(Number(b.dataset.novaEntrega)))); document.querySelectorAll('[data-imprimir]').forEach(b=>b.addEventListener('click', ()=>this.abrirComprovante(Number(b.dataset.imprimir)))); },
-    fichas: function(){ this.renderFichasTable(); ['f-fichas-busca','f-fichas-sit','f-fichas-aba'].forEach(id=>{ document.getElementById(id)?.addEventListener('input', ()=>this.renderFichasTable()); }); },
-    entregas: function(){ document.querySelectorAll('[data-imprimir]').forEach(b=>b.addEventListener('click', ()=>this.abrirComprovante(Number(b.dataset.imprimir)))); },
-    emprestimos: function(){ document.querySelectorAll('[data-info-devol]').forEach(b=>b.addEventListener('click', ()=>{ this.abrirDeclararDevolucao(Number(b.dataset.infoDevol)); })); document.querySelectorAll('[data-confirmar-devol]').forEach(b=>b.addEventListener('click', ()=>{ this.abrirConfirmarDevolucao(Number(b.dataset.confirmarDevol)); })); },
-    devolucoes: function(){ document.querySelectorAll('[data-confirmar-devol]').forEach(b=>b.addEventListener('click', ()=>{ this.abrirConfirmarDevolucao(Number(b.dataset.confirmarDevol)); })); },
-    historico: function(){ this.renderHistorico(); document.getElementById('f-hist-busca')?.addEventListener('input', ()=>this.renderHistorico()); document.getElementById('btn-hist-limpar')?.addEventListener('click', ()=>{ document.getElementById('f-hist-busca').value = ''; this.renderHistorico(); }); },
-    relatorios: function(){ document.getElementById('rel-gerar')?.addEventListener('click', ()=>this.gerarRelatorio()); document.getElementById('rel-print')?.addEventListener('click', ()=>window.print()); },
-    planilha: function(){ document.getElementById('btn-sync')?.addEventListener('click', ()=>{ const agora = U.todayISO(); Store.get('fichas').forEach(f=>Store.update('fichas', f.id, {ultima_consulta: agora})); U.toast('Planilha sincronizada (simulado).','info'); this.renderScreen(); }); },
+    solicitacoes: function(){ 
+      document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); 
+      document.querySelectorAll('[data-print-sol]').forEach(b=>b.addEventListener('click', ()=>this.abrirComprovante(Number(b.dataset.printSol))));
+    },
+    'minhas-solicitacoes': function(){ 
+      document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); 
+      document.querySelectorAll('[data-print-sol]').forEach(b=>b.addEventListener('click', ()=>this.abrirComprovante(Number(b.dataset.printSol))));
+    },
+    
+    'solicitacao-detalhe': function(){ 
+      document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>this.navigate(b.dataset.nav))); 
+      document.querySelectorAll('[data-print-sol]').forEach(b=>b.addEventListener('click', ()=>this.abrirComprovante(Number(b.dataset.printSol))));
+      
+      document.querySelectorAll('[data-acao-item]').forEach(b=>b.addEventListener('click', ()=>{
+        const itemId = Number(b.dataset.acaoItem);
+        const acao = b.dataset.acao;
+        const item = Store.get('itens_solicitacao').find(i=>i.id===itemId);
+        const solId = item.solicitacao_id;
+        
+        if(acao === 'separar') {
+          Store.update('itens_solicitacao', itemId, { situacao_item: 'Separando' });
+          this.atualizarStatusSolicitacao(solId);
+          this.renderScreen();
+        }
+        else if(acao === 'entregar') {
+          const solEmprestada = this.fichaEstaEmprestada(item.ficha_id);
+          if (solEmprestada && solEmprestada.id !== solId) {
+             U.toast(`Erro Crítico: Esta ficha está com o solicitante na ${solEmprestada.numero}!`, 'error');
+             return;
+          }
+
+          const hasPendencia = b.dataset.pendencia === 'true';
+          
+          if (hasPendencia) {
+            const lote = b.dataset.lote;
+            const status = b.dataset.status;
+            const modalBody = `
+              <p style="font-size:14px; color:var(--text-main); margin-bottom:12px;">
+                A ficha <strong>Lote ${lote}</strong> está com a pendência documental: <strong style="color:var(--danger);">${status}</strong>.
+              </p>
+              <p style="font-size:13px; color:var(--text-muted);">
+                O correto é aguardar a resolução da pendência antes de entregar. Deseja <strong>forçar a entrega</strong> por motivos de urgência?
+              </p>
+            `;
+            this.openModal('Atenção: Ficha com Pendência', modalBody, `
+              <button class="btn btn-secondary" data-close>Cancelar</button>
+              <button class="btn btn-warning" id="btn-forcar-entrega">Sim, Entregar com Urgência</button>
+            `);
+            
+            document.getElementById('btn-forcar-entrega').addEventListener('click', () => {
+              Store.update('itens_solicitacao', itemId, { situacao_item: 'Entregue' });
+              this.atualizarStatusSolicitacao(solId);
+              this.closeModal();
+              this.renderScreen();
+              U.toast('Entrega de urgência registrada.', 'warning');
+            });
+          } else {
+            Store.update('itens_solicitacao', itemId, { situacao_item: 'Entregue' });
+            this.atualizarStatusSolicitacao(solId);
+            this.renderScreen();
+            U.toast('Entrega confirmada.', 'success');
+          }
+        }
+        else if(acao === 'solicitar-devolucao') {
+          Store.update('itens_solicitacao', itemId, { situacao_item: 'Devolução Solicitada' });
+          this.atualizarStatusSolicitacao(solId);
+          this.renderScreen();
+          U.toast('Devolução informada! Aguardando conferência do Admin.', 'info');
+        }
+        else if(acao === 'confirmar-devolucao') {
+          Store.update('itens_solicitacao', itemId, { situacao_item: 'Devolvido' });
+          this.atualizarStatusSolicitacao(solId);
+          this.renderScreen();
+          U.toast('Recebimento confirmado!', 'success');
+        }
+      }));
+    },
+    
     'nova-solicitacao': function(){
       this.state.novaItems = this.state.novaItems || [];
       document.getElementById('btn-add-item')?.addEventListener('click', ()=>{ this.state.novaItems.push({ lote:'' }); this.renderScreen(); });
       const container = document.getElementById('nova-itens');
       container?.addEventListener('click', e=>{ const rmBtn = e.target.closest('.btn-rm-item'); if(rmBtn){ this.state.novaItems.splice(Number(rmBtn.dataset.idx), 1); this.renderScreen(); } });
-      container?.addEventListener('input', e=>{
-        if(e.target.classList.contains('nova-lote')){
-          const row = e.target.closest('.item-row'); const idx = Number(row.dataset.idx);
-          this.state.novaItems[idx].lote = e.target.value.trim();
-          const it = this.state.novaItems[idx];
-          const ficha = it.lote ? this.buscaFichaPorLote(it.lote) : null;
-          const analise = it.lote ? this.analisarFicha(ficha) : null;
-          let analiseHtml = '';
-          if(analise) {
-            analiseHtml = `<div class="analise-box" style="grid-column:1/-1;font-size:13px;margin-top:8px;">${analise.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':analise.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':analise.status==='indisponivel'?'<span class="badge badge-yellow">Indisponível</span>':'<span class="badge badge-gray">Não encontrada</span>'} — <span style="color:var(--text-muted);font-weight:500;">${U.esc(analise.msg)}</span></div>`;
-          }
-          let box = row.querySelector('.analise-box');
-          if (box) { box.outerHTML = analiseHtml; } 
-          else if (analiseHtml) { row.insertAdjacentHTML('beforeend', analiseHtml); }
-        }
+      container?.addEventListener('input', e=>{ 
+        if(e.target.classList.contains('nova-lote')) { 
+          const row = e.target.closest('.item-row'); const idx = Number(row.dataset.idx); 
+          this.state.novaItems[idx].lote = e.target.value.trim(); 
+          const feedbackDiv = document.getElementById(`feedback-${idx}`);
+          if(feedbackDiv) feedbackDiv.innerHTML = this.getLoteFeedback(this.state.novaItems[idx].lote);
+        } 
       });
       document.getElementById('btn-enviar-sol')?.addEventListener('click', ()=>{
         const itensValidos = this.state.novaItems.filter(i=>i.lote);
-        if(!itensValidos.length){ U.toast('Adicione pelo menos um item válido.','error'); return; }
-        const user = Auth.current(); const obs = document.getElementById('nova-obs').value.trim();
-        const nova = Store.add('solicitacoes', { numero: 'SOL-2025-' + String(Store.get('solicitacoes').length + 1).padStart(4,'0'), solicitante_id: user.id, solicitante_nome: user.nome, setor: user.setor, data_criacao: U.todayISO(), situacao: 'Recebida', observacoes: obs });
-        itensValidos.forEach(it=>{ const f = this.buscaFichaPorLote(it.lote); Store.add('itens_solicitacao', { solicitacao_id: nova.id, ficha_id: f ? f.id : null, situacao_item: f ? this.analisarFicha(f).status : 'Não encontrada', lote_snapshot: f ? null : it.lote, codigo_snapshot: null }); });
-        this.state.novaItems = []; U.toast('Solicitação enviada com sucesso!','success'); this.navigate('minhas-solicitacoes');
+        if(!itensValidos.length){ U.toast('Adicione pelo menos um lote.','error'); return; }
+        const user = Auth.current();
+        const nova = Store.add('solicitacoes', { numero: 'SOL-2025-' + String(Store.get('solicitacoes').length + 1).padStart(4,'0'), solicitante_id: user.id, solicitante_nome: user.nome, setor: user.setor, data_criacao: U.todayISO(), situacao: 'Pendente', observacoes: '' });
+        itensValidos.forEach(it=>{ 
+          const f = Store.get('fichas').find(f => f.lote === it.lote); 
+          Store.add('itens_solicitacao', { solicitacao_id: nova.id, ficha_id: f ? f.id : null, situacao_item: 'Pendente', lote_snapshot: f ? null : it.lote, codigo_snapshot: null }); 
+        });
+        this.state.novaItems = []; U.toast('Solicitação criada!','success'); this.navigate('minhas-solicitacoes');
       });
     },
-    'minhas-solicitacoes': function(){ 
-      document.querySelectorAll('[data-sol-detail]').forEach(b=>b.addEventListener('click', ()=>this.navigate('solicitacao-detalhe', {id:b.dataset.solDetail}))); 
-    },
-    'minhas-fichas-emprestadas': function(){ document.querySelectorAll('[data-declarar-devol]').forEach(b=>b.addEventListener('click', ()=>{ this.abrirDeclararDevolucao(Number(b.dataset.declararDevol)); })); },
-    'minha-conta': function(){ document.getElementById('conta-form')?.addEventListener('submit', e=>{ e.preventDefault(); const user = Auth.current(); const novosDados = { nome: document.getElementById('conta-nome').value.trim(), email: document.getElementById('conta-email').value.trim(), senha: document.getElementById('conta-senha').value.trim() }; Store.update('usuarios', user.id, novosDados); sessionStorage.setItem('sigef_user', JSON.stringify({...user, ...novosDados})); U.toast('Dados atualizados!','success'); this.renderShell(); }); }
-  }
+
+    'fichas': function() {
+      document.getElementById('btn-importar-planilha')?.addEventListener('click', () => {
+        U.toast('Conectando à planilha...', 'info');
+        setTimeout(() => {
+          Store.add('fichas', { lote: '99901', codigo_produto: 'PROD-100', nome_produto: 'Parafuso', situacao_planilha: 'Arquivada', aba_origem: 'Arquivadas', ultima_consulta: U.todayISO() });
+          Store.add('fichas', { lote: '99902', codigo_produto: 'PROD-310', nome_produto: 'Tubo', situacao_planilha: 'Em revisão', aba_origem: 'Em Correção', ultima_consulta: U.todayISO() });
+          U.toast('Planilha importada!', 'success');
+          this.renderScreen();
+        }, 1500);
+      });
+
+      document.getElementById('btn-add-ficha')?.addEventListener('click', () => {
+        const body = `<div class="form-grid"><div class="field"><label>Lote</label><input type="text" id="f-lote"></div><div class="field"><label>Código</label><input type="text" id="f-codigo"></div><div class="field"><label>Nome</label><input type="text" id="f-nome"></div><div class="field"><label>Situação</label><select id="f-situacao"><option value="Arquivada">Arquivada</option><option value="Pendente de FP">Pendente de FP</option><option value="Pendente de RA">Pendente de RA</option><option value="Em correção">Em correção</option><option value="Em revisão">Em revisão</option></select></div></div>`;
+        this.openModal('Adicionar Nova Ficha', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" id="btn-salvar-ficha">Salvar</button>`);
+        document.getElementById('btn-salvar-ficha').addEventListener('click', () => {
+          const lote = document.getElementById('f-lote').value.trim(), codigo = document.getElementById('f-codigo').value.trim(), nome = document.getElementById('f-nome').value.trim(), situacao = document.getElementById('f-situacao').value;
+          if(!lote || !codigo) { U.toast('Preencha lote e código.', 'error'); return; }
+          Store.add('fichas', { lote, codigo_produto: codigo, nome_produto: nome, situacao_planilha: situacao, aba_origem: (situacao==='Arquivada'?'Arquivadas':'Em Correção'), ultima_consulta: U.todayISO() });
+          this.closeModal(); U.toast('Ficha adicionada!', 'success'); this.renderScreen();
+        });
+      });
+
+      document.querySelectorAll('[data-edit-ficha]').forEach(b => b.addEventListener('click', () => {
+        const fichaId = Number(b.dataset.editFicha), ficha = U.findFicha(fichaId);
+        const body = `<div class="form-grid"><div class="field"><label>Lote</label><input type="text" value="${ficha.lote}" disabled></div><div class="field"><label>Código</label><input type="text" value="${ficha.codigo_produto}" disabled></div><div class="field" style="grid-column: 1 / -1;"><label>Alterar Situação</label><select id="edit-f-situacao" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;"><option value="Arquivada" ${ficha.situacao_planilha==='Arquivada'?'selected':''}>Arquivada</option><option value="Pendente de FP" ${ficha.situacao_planilha==='Pendente de FP'?'selected':''}>Pendente de FP</option><option value="Pendente de RA" ${ficha.situacao_planilha==='Pendente de RA'?'selected':''}>Pendente de RA</option><option value="Em correção" ${ficha.situacao_planilha==='Em correção'?'selected':''}>Em correção</option><option value="Em revisão" ${ficha.situacao_planilha==='Em revisão'?'selected':''}>Em revisão</option></select></div></div>`;
+        this.openModal('Editar Status da Ficha', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" id="btn-update-ficha">Salvar Alteração</button>`);
+        document.getElementById('btn-update-ficha').addEventListener('click', () => {
+          Store.update('fichas', fichaId, { situacao_planilha: document.getElementById('edit-f-situacao').value });
+          this.closeModal(); U.toast('Status atualizado!', 'success'); this.renderScreen();
+        });
+      }));
+    }
+  },
+  openModal(title, body, foot='', large=false) { document.body.classList.add('modal-open'); const el = document.createElement('div'); el.className = 'modal-overlay'; el.innerHTML = `<div class="modal ${large?'modal-lg':''}"><div class="modal-head"><h3>${title}</h3><button class="close-x" data-close>×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div>`; document.body.appendChild(el); el.querySelector('[data-close]').addEventListener('click', ()=>this.closeModal()); el.addEventListener('click', e=>{ if(e.target===el) this.closeModal(); }); },
+  closeModal() { document.body.classList.remove('modal-open'); const m = document.querySelector('.modal-overlay'); if(m) m.remove(); }
 };
 document.addEventListener('DOMContentLoaded', ()=>App.init());

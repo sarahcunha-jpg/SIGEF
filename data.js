@@ -1,4 +1,4 @@
-const DB_KEY = 'sigef_data_v10'; // MUDANÇA AQUI: Força o navegador a criar dados novos
+const DB_KEY = 'sigef_data_v11';
 function seedData() {
   const iso = d => d.toISOString();
   const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return iso(d); };
@@ -20,30 +20,32 @@ function seedData() {
     ['45823','PROD-310','Pendente de RA','Arquivadas'],
     ['45824','PROD-100','Em correção','Em Correção'],
     ['45825','PROD-205','Em revisão','Em Correção'],
-    ['45826','PROD-310','Arquivada','Arquivadas']
+    ['45826','PROD-310','Arquivada','Arquivadas'],
+    ['45827','PROD-100','Arquivada','Arquivadas']
   ];
   
   const fichas = fichasRaw.map((f,i)=>({
     id:i+1, lote:f[0], codigo_produto:f[1], nome_produto: produtosMap[f[1]] || 'Produto Padrão', situacao_planilha:f[2], aba_origem:f[3], ultima_consulta:daysAgo(0)
   }));
   
-  // Criando solicitações com status variados para testar o painel
+  // Criando cenários de teste
   const solicitacoes = [
-    { id:1, numero:'SOL-2025-0001', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(1), situacao:'Aguardando Confirmação', observacoes:'' },
-    { id:2, numero:'SOL-2025-0002', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(2), situacao:'Aguardando Devolução', observacoes:'' },
+    { id:1, numero:'SOL-2025-0001', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(1), situacao:'Aguardando Devolução', observacoes:'' },
+    { id:2, numero:'SOL-2025-0002', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(2), situacao:'Em Separação', observacoes:'' },
     { id:3, numero:'SOL-2025-0003', solicitante_id:2, solicitante_nome:'João Silva', setor:'Produção', data_criacao:daysAgo(3), situacao:'Finalizada', observacoes:'' }
   ];
 
   const itens_solicitacao = [
-    // Sol 1: Aguardando Confirmação (João já devolveu, Admin precisa confirmar)
-    { id:1, solicitacao_id:1, ficha_id:1, situacao_item:'Devolução Solicitada', lote_snapshot:null, codigo_snapshot:null },
+    // Sol 1: Entregues (Prontas para o João pedir devolução)
+    { id:1, solicitacao_id:1, ficha_id:1, situacao_item:'Entregue', lote_snapshot:null, codigo_snapshot:null },
+    { id:2, solicitacao_id:1, ficha_id:6, situacao_item:'Entregue', lote_snapshot:null, codigo_snapshot:null },
     
-    // Sol 2: Aguardando Devolução (Fichas entregues ao João)
-    { id:2, solicitacao_id:2, ficha_id:2, situacao_item:'Entregue', lote_snapshot:null, codigo_snapshot:null },
-    { id:3, solicitacao_id:2, ficha_id:3, situacao_item:'Entregue', lote_snapshot:null, codigo_snapshot:null },
+    // Sol 2: Em Separação (Pronta para o Admin gerar comprovante)
+    { id:3, solicitacao_id:2, ficha_id:2, situacao_item:'Separando', lote_snapshot:null, codigo_snapshot:null },
+    { id:4, solicitacao_id:2, ficha_id:7, situacao_item:'Pendente', lote_snapshot:null, codigo_snapshot:null },
     
-    // Sol 3: Finalizada (Fichas devolvidas e confirmadas)
-    { id:4, solicitacao_id:3, ficha_id:4, situacao_item:'Devolvido', lote_snapshot:null, codigo_snapshot:null }
+    // Sol 3: Finalizada
+    { id:5, solicitacao_id:3, ficha_id:3, situacao_item:'Devolvido', lote_snapshot:null, codigo_snapshot:null }
   ];
 
   return { usuarios, fichas, solicitacoes, itens_solicitacao };
