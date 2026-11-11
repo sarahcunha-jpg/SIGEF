@@ -87,7 +87,8 @@ const App = {
   },
   renderNav(){
     const user = Auth.current(); const admin = user.perfil==='admin';
-    // Nomes exatos do documento mestre original
+    
+    // Apenas as abas solicitadas
     const items = admin ? [
       ['dashboard','Painel inicial','📊'],
       ['solicitacoes','Solicitações','📥'],
@@ -97,10 +98,7 @@ const App = {
       ['devolucoes','Devoluções','↩️'],
       ['historico','Histórico','🕓'],
       ['relatorios','Relatórios','📈'],
-      ['planilha','Planilha de controle (demonstração)','📑'],
-      ['emails','E-mails (demonstração)','✉️'],
-      ['usuarios','Usuários','👥'],
-      ['configuracoes','Configurações','⚙️']
+      ['planilha','Planilha de controle (demonstração)','📑']
     ] : [
       ['dashboard','Meu painel','📊'],
       ['nova-solicitacao','Nova solicitação','➕'],
@@ -121,18 +119,18 @@ const App = {
   },
   renderScreen(){
     const user = Auth.current(); if(!user) return;
-    const titles = {dashboard: user.perfil==='admin'?'Painel Administrativo':'Meu Painel',solicitacoes:'Solicitações',fichas:'Consulta de Fichas',entregas:'Entregas',emprestimos:'Empréstimos',devolucoes:'Devoluções',historico:'Histórico',relatorios:'Relatórios',planilha:'Planilha (demonstração)',emails:'E-mails (demonstração)',usuarios:'Usuários',configuracoes:'Configurações','nova-solicitacao':'Nova Solicitação','minhas-solicitacoes':'Minhas Solicitações','minhas-fichas-emprestadas':'Minhas Fichas Emprestadas','minhas-devolucoes':'Minhas Devoluções','meu-historico':'Meu Histórico','minha-conta':'Minha Conta','solicitacao-detalhe':'Detalhe da Solicitação'};
+    const titles = {dashboard: user.perfil==='admin'?'Painel Administrativo':'Meu Painel',solicitacoes:'Solicitações',fichas:'Consulta de Fichas',entregas:'Entregas',emprestimos:'Empréstimos',devolucoes:'Devoluções',historico:'Histórico',relatorios:'Relatórios',planilha:'Planilha de controle (demonstração)','nova-solicitacao':'Nova Solicitação','minhas-solicitacoes':'Minhas Solicitações','minhas-fichas-emprestadas':'Minhas Fichas Emprestadas','minhas-devolucoes':'Minhas Devoluções','meu-historico':'Meu Histórico','minha-conta':'Minha Conta','solicitacao-detalhe':'Detalhe da Solicitação'};
     document.getElementById('page-title').textContent = titles[this.state.screen] || 'SIGEF';
     const el = document.getElementById('content');
     try { el.innerHTML = this.screenHTML(this.state.screen, this.state.params); } catch(e){ el.innerHTML = `<div class="card">Erro: ${U.esc(e.message)}</div>`; }
     const fn = this.events[this.state.screen]; if(fn) fn.call(this);
   },
   screenHTML(screen, params){
-    const map = {dashboard:()=>this.screenDashboard(),solicitacoes:()=>this.screenSolicitacoes(),'solicitacao-detalhe':()=>this.screenSolicitacaoDetalhe(params),fichas:()=>this.screenFichas(),entregas:()=>this.screenEntregas(),emprestimos:()=>this.screenEmprestimos(),devolucoes:()=>this.screenDevolucoes(),historico:()=>this.screenHistorico(),relatorios:()=>this.screenRelatorios(),planilha:()=>this.screenPlanilha(),emails:()=>this.screenEmails(),usuarios:()=>this.screenUsuarios(),configuracoes:()=>this.screenConfiguracoes(),'nova-solicitacao':()=>this.screenNovaSolicitacao(),'minhas-solicitacoes':()=>this.screenMinhasSolicitacoes(),'minhas-fichas-emprestadas':()=>this.screenMinhasEmprestadas(),'minhas-devolucoes':()=>this.screenMinhasDevolucoes(),'meu-historico':()=>this.screenMeuHistorico(),'minha-conta':()=>this.screenMinhaConta()};
+    const map = {dashboard:()=>this.screenDashboard(),solicitacoes:()=>this.screenSolicitacoes(),'solicitacao-detalhe':()=>this.screenSolicitacaoDetalhe(params),fichas:()=>this.screenFichas(),entregas:()=>this.screenEntregas(),emprestimos:()=>this.screenEmprestimos(),devolucoes:()=>this.screenDevolucoes(),historico:()=>this.screenHistorico(),relatorios:()=>this.screenRelatorios(),planilha:()=>this.screenPlanilha(),'nova-solicitacao':()=>this.screenNovaSolicitacao(),'minhas-solicitacoes':()=>this.screenMinhasSolicitacoes(),'minhas-fichas-emprestadas':()=>this.screenMinhasEmprestadas(),'minhas-devolucoes':()=>this.screenMinhasDevolucoes(),'meu-historico':()=>this.screenMeuHistorico(),'minha-conta':()=>this.screenMinhaConta()};
     return (map[screen]||(()=>'<div class="card">Tela não encontrada.</div>'))();
   },
   metricCard(label, value, type=''){ return `<div class="card metric ${type}"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
-  hbar(label, value, total, color){ const pct = total ? Math.round(value/total*100) : 0; return `<div class="hbar"><div class="hbar-label">${U.esc(label)}</div><div class="hbar-track"><div class="hbar-fill" style="width:${pct}%;background:${color}"></div></div><div class="hbar-value">${value}</div></div>`; },
+  
   analisarFicha(ficha){
     if(!ficha) return { status:'nao_encontrada', msg:'Ficha não encontrada na base. Sinalizar para conferência administrativa.' };
     const emp = U.emprestimoAtivo(ficha.id);
@@ -150,7 +148,6 @@ const App = {
   screenDashboard(){ return Auth.current().perfil==='admin' ? this.dashboardAdmin() : this.dashboardSolicitante(); },
   
   dashboardAdmin(){
-    // Restaurado exatamente como no escopo original
     const sols = Store.get('solicitacoes');
     const fichas = Store.get('fichas');
     const emps = Store.get('emprestimos');
@@ -159,40 +156,20 @@ const App = {
     const emCorrecao = fichas.filter(f=>f.situacao_planilha==='Em correção').length;
     const pFO = fichas.filter(f=>f.situacao_planilha==='Pendente de FO').length;
     const pRA = fichas.filter(f=>f.situacao_planilha==='Pendente de RA').length;
-    const emRevisao = fichas.filter(f=>f.situacao_planilha==='Em revisão').length;
     const arquivadas = fichas.filter(f=>f.situacao_planilha==='Arquivada').length;
     const emprestadas = emps.filter(e=>e.status==='Emprestada'||e.status==='Devolução informada').length;
 
     return `
       <div class="grid grid-4">
         ${this.metricCard('Total de solicitações recebidas', sols.length)}
-        ${this.metricCard('Aguardando atendimento', sols.filter(s=>s.situacao==='Recebida'||s.situacao==='Em análise').length,'blue')}
-        ${this.metricCard('Parcialmente atendidas', sols.filter(s=>s.situacao==='Parcialmente atendida').length,'yellow')}
+        ${this.metricCard('Solicitações aguardando atendimento', sols.filter(s=>s.situacao==='Recebida'||s.situacao==='Em análise').length,'blue')}
         ${this.metricCard('Solicitações concluídas', sols.filter(s=>s.situacao==='Concluída').length,'green')}
-      </div>
-      <div class="grid grid-4" style="margin-top:24px;">
         ${this.metricCard('Total de fichas entregues', totalEntregue,'green')}
         ${this.metricCard('Fichas emprestadas', emprestadas,'red')}
         ${this.metricCard('Devoluções aguardando conferência', devolPend.length,'yellow')}
         ${this.metricCard('Fichas em correção', emCorrecao,'yellow')}
-      </div>
-      
-      <div class="section grid grid-2">
-        <div class="card">
-          <h3 style="margin-bottom:20px;">Fichas pendentes e arquivadas</h3>
-          ${this.hbar('Fichas pendentes (FO)', pFO, fichas.length, 'var(--yellow)')}
-          ${this.hbar('Fichas pendentes (RA)', pRA, fichas.length, 'var(--yellow)')}
-          ${this.hbar('Fichas em revisão', emRevisao, fichas.length, 'var(--blue)')}
-          ${this.hbar('Fichas arquivadas', arquivadas, fichas.length, 'var(--green)')}
-        </div>
-        <div class="card">
-          <h3 style="margin-bottom:20px;">Atalhos frequentes</h3>
-          <div style="display:flex;flex-direction:column;gap:12px;">
-            <button class="btn btn-primary" style="justify-content:flex-start;" data-nav="solicitacoes">📥 Ir para Solicitações</button>
-            <button class="btn btn-secondary" style="justify-content:flex-start;" data-nav="fichas">🗂️ Consultar Fichas</button>
-            <button class="btn btn-secondary" style="justify-content:flex-start;" data-nav="devolucoes">↩️ Conferir Devoluções Pendentes</button>
-          </div>
-        </div>
+        ${this.metricCard('Fichas pendentes (FO/RA)', pFO + pRA,'orange')}
+        ${this.metricCard('Fichas arquivadas', arquivadas,'green')}
       </div>
     `;
   },
@@ -311,17 +288,6 @@ const App = {
       <div class="section"><h3 style="margin-bottom:10px;">Aba: Arquivadas</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th></tr></thead><tbody>${Store.get('fichas').filter(f=>f.aba_origem==='Arquivadas').map(f=>`<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.badgeSit(f.situacao_planilha)}</td></tr>`).join('')}</tbody></table></div></div>
       <div class="section"><h3 style="margin-bottom:10px;">Aba: Em Correção</h3><div class="table-wrap"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th></tr></thead><tbody>${Store.get('fichas').filter(f=>f.aba_origem==='Em Correção').map(f=>`<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>${U.badgeSit(f.situacao_planilha)}</td></tr>`).join('')}</tbody></table></div></div>`;
   },
-  screenEmails(){
-    const emails = Store.get('emails').slice().sort((a,b)=>b.data.localeCompare(a.data));
-    return `<div class="table-wrap"><table><thead><tr><th>Remetente</th><th>Assunto</th><th>Data</th><th>Lotes</th><th>Status</th><th style="text-align:right;">Ações</th></tr></thead><tbody>${emails.map(m=>`<tr><td>${U.esc(m.remetente_nome)}<br><small>${U.esc(m.remetente)}</small></td><td>${U.esc(m.assunto)}</td><td>${U.fmtDateTime(m.data)}</td><td>${m.lotes_identificados.map(l=>`<span class="badge badge-blue">${U.esc(l)}</span>`).join(' ')}</td><td>${m.status_processamento==='Processado' ? '<span class="badge badge-green">Processado</span>' : '<span class="badge badge-yellow">Pendente</span>'}</td><td class="table-actions"><button class="btn btn-secondary btn-sm" data-email-ver="${m.id}">Ver</button>${m.status_processamento==='Pendente' ? `<button class="btn btn-primary btn-sm" data-email-processar="${m.id}">Processar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
-  },
-  screenUsuarios(){
-    const us = Store.get('usuarios');
-    return `<div class="card"><div class="section-head"><h3>Usuários cadastrados</h3><button class="btn btn-primary btn-sm" id="btn-add-user">+ Novo usuário</button></div><div class="table-wrap" style="margin-top:10px;"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Setor</th><th>Perfil</th><th>Ativo</th><th style="text-align:right;">Ações</th></tr></thead><tbody>${us.map(u=>`<tr><td><strong>${U.esc(u.nome)}</strong></td><td>${U.esc(u.email)}</td><td>${U.esc(u.setor)}</td><td><span class="badge ${u.perfil==='admin'?'badge-blue':'badge-gray'}">${U.esc(u.perfil)}</span></td><td>${u.ativo?'<span class="badge badge-green">Sim</span>':'<span class="badge badge-red">Não</span>'}</td><td class="table-actions"><button class="btn btn-secondary btn-sm" data-edit-user="${u.id}">Editar</button></td></tr>`).join('')}</tbody></table></div></div>`;
-  },
-  screenConfiguracoes(){
-    return `<div class="card"><h3>Configurações do protótipo</h3><p style="margin-top:10px;font-size:14px;line-height:1.7;color:var(--text-muted);">Este é um protótipo de demonstração. Os dados são armazenados localmente no navegador (localStorage) e não são enviados para nenhum servidor.</p><div class="info-list" style="margin-top:20px;"><div class="info-row"><span class="k">Versão</span><span class="v">v3.20 (protótipo)</span></div><div class="info-row"><span class="k">Persistência</span><span class="v">localStorage</span></div><div class="info-row"><span class="k">Integrações reais</span><span class="v">Nenhuma (Outlook e Excel simulados)</span></div></div><div class="form-actions" style="margin-top:24px;"><button class="btn btn-danger" id="btn-reset">🔄 Restaurar dados de demonstração</button></div></div>`;
-  },
   screenNovaSolicitacao(){
     const items = this.state.novaItems || [];
     return `<div class="card"><h3>Nova solicitação</h3><p style="margin-top:4px;font-size:14px;color:var(--text-muted);">Informe o número do lote. O sistema buscará a ficha correspondente.</p><div id="nova-itens" style="margin-top:20px;">${items.map((it,i)=>this.renderNovaItemRow(it,i)).join('') || '<div class="table-empty">Nenhum item adicionado.</div>'}</div><button class="btn btn-secondary btn-sm" id="btn-add-item" style="margin-top:12px;">+ Adicionar item</button><div class="field" style="margin-top:24px;"><label>Observações (opcional)</label><textarea id="nova-obs" rows="3" placeholder="Alguma informação adicional?"></textarea></div><div class="form-actions"><button class="btn btn-primary" id="btn-enviar-sol">Enviar solicitação</button></div></div>`;
@@ -379,7 +345,6 @@ const App = {
     const itensE = Store.get('itens_entrega').filter(ie=>ie.entrega_id===e.id);
     const linhas = itensE.map(ie=>{ const f = U.findFicha(ie.ficha_id); return `<tr><td>${U.esc(f.lote)}</td><td>${U.esc(f.codigo_produto)}</td><td>Ficha Documental</td></tr>`; }).join('');
     
-    // Visual do comprovante corrigido para A4
     const body = `
       <div class="receipt" style="padding: 20px;">
         <div class="receipt-head">
@@ -452,10 +417,9 @@ const App = {
       <td style="text-align:center;"><input type="checkbox" data-ficha-id="${it.ficha_id}" class="entrega-check" style="width:18px;height:18px;cursor:pointer;"></td>
       <td style="font-weight:600;">${U.esc(f.lote)}</td>
       <td>${U.esc(f.codigo_produto)}</td>
-      <td><select class="tipo-entrega" data-ficha-id="${it.ficha_id}" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:var(--radius-sm); outline:none;"><option value="normal">Definitiva</option><option value="emprestimo">Empréstimo</option></select></td>
     </tr>`; }).join('');
     const hoje = new Date().toISOString().slice(0,10);
-    const body = `<p style="font-size:14px;margin-bottom:16px;color:var(--text-muted);">Marque os itens que serão entregues agora. Para cada item, escolha se a entrega é definitiva ou se é um empréstimo temporário.</p><div class="table-wrap"><table><thead><tr><th style="width:60px;text-align:center;">Sel.</th><th>Lote</th><th>Código</th><th>Tipo de Entrega</th></tr></thead><tbody>${rows}</tbody></table></div><div class="form-grid" style="margin-top:24px;"><div class="field"><label>Recebido por</label><input type="text" id="entrega-recebedor" value="${U.esc(sol.solicitante_nome)}" required></div><div class="field"><label>Setor do recebedor</label><input type="text" id="entrega-setor" value="${U.esc(sol.setor)}" required></div><div class="field"><label>Data da entrega</label><input type="date" id="entrega-data" value="${hoje}" required></div></div>`;
+    const body = `<p style="font-size:14px;margin-bottom:16px;color:var(--text-muted);">Marque os itens que serão entregues agora.</p><div class="table-wrap"><table><thead><tr><th style="width:60px;text-align:center;">Sel.</th><th>Lote</th><th>Código</th></tr></thead><tbody>${rows}</tbody></table></div><div class="form-grid" style="margin-top:24px;"><div class="field"><label>Recebido por</label><input type="text" id="entrega-recebedor" value="${U.esc(sol.solicitante_nome)}" required></div><div class="field"><label>Setor do recebedor</label><input type="text" id="entrega-setor" value="${U.esc(sol.setor)}" required></div><div class="field"><label>Data da entrega</label><input type="date" id="entrega-data" value="${hoje}" required></div></div>`;
     this.openModal('Registrar entrega', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" id="btn-salvar-entrega">Confirmar entrega</button>`, true);
     document.getElementById('btn-salvar-entrega').addEventListener('click', ()=>this.salvarEntrega(solicitacaoId));
   },
@@ -470,11 +434,6 @@ const App = {
       Store.add('itens_entrega', { entrega_id: entrega.id, ficha_id: fichaId });
       const item = Store.get('itens_solicitacao').find(i=>i.solicitacao_id===solicitacaoId && i.ficha_id===fichaId); if(item) Store.update('itens_solicitacao', item.id, { situacao_item: 'Entregue' });
       
-      const tipoSelect = document.querySelector(`.tipo-entrega[data-ficha-id="${fichaId}"]`);
-      if(tipoSelect && tipoSelect.value === 'emprestimo' && !U.emprestimoAtivo(fichaId)){
-        Store.add('emprestimos', { ficha_id: fichaId, recebedor_nome: recebedor, recebedor_setor: setor, responsavel: user.nome, data_emprestimo: U.todayISO(), status: 'Emprestada', data_devolucao_informada: null, data_confirmacao_fisica: null });
-        Store.add('historico', { ficha_id: fichaId, usuario_responsavel: user.nome, tipo_movimentacao: 'Empréstimo', descricao: `Emprestada para ${recebedor} (${setor}).`, data_hora: U.todayISO() });
-      }
       Store.add('historico', { ficha_id: fichaId, usuario_responsavel: user.nome, tipo_movimentacao: 'Entrega', descricao: `Entregue na solicitação (entrega #${entrega.id}) para ${recebedor}.`, data_hora: U.todayISO() });
     });
     const itens = Store.get('itens_solicitacao').filter(i=>i.solicitacao_id===solicitacaoId);
@@ -493,22 +452,6 @@ const App = {
       this.closeModal(); U.toast('Devolução conferida!','success'); this.renderScreen();
     });
   },
-  abrirEmail(emailId){
-    const m = Store.get('emails').find(x=>x.id===emailId); const lotesFichas = [];
-    m.lotes_identificados.forEach(l=>{ const fichasDoLote = Store.get('fichas').filter(f=>f.lote===l); fichasDoLote.forEach(f=>lotesFichas.push({ lote:l, ficha:f })); });
-    const rows = lotesFichas.map(({lote,ficha})=>{ const ana = this.analisarFicha(ficha); return `<tr><td>${U.esc(lote)}</td><td>${U.esc(ficha.codigo_produto)}</td><td>${U.badgeSit(ficha.situacao_planilha)}</td><td>${ana.status==='disponivel'?'<span class="badge badge-green">Disponível</span>':ana.status==='emprestada'?'<span class="badge badge-red">Emprestada</span>':'<span class="badge badge-yellow">Indisponível</span>'} ${U.esc(ana.msg)}</td></tr>`; }).join('');
-    const body = `<div class="info-list"><div class="info-row"><span class="k">De</span><span class="v">${U.esc(m.remetente_nome)} &lt;${U.esc(m.remetente)}&gt;</span></div><div class="info-row"><span class="k">Data</span><span class="v">${U.fmtDateTime(m.data)}</span></div></div><div style="margin-top:16px;padding:16px;background:#F9FAFB;border-radius:var(--radius-sm);font-size:14px;white-space:pre-wrap;border:1px solid var(--border-color);">${U.esc(m.corpo)}</div><h4 style="margin-top:24px;">Fichas identificadas</h4><div class="table-wrap" style="margin-top:8px;"><table><thead><tr><th>Lote</th><th>Código</th><th>Situação</th><th>Análise</th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="table-empty">Nenhuma ficha encontrada.</td></tr>'}</tbody></table></div>${m.status_processamento==='Pendente'?`<div style="margin-top:20px;"><h4>Rascunho de resposta (simulado)</h4><textarea id="email-resposta" rows="4" style="width:100%;padding:12px;border:1px solid var(--border-color);border-radius:var(--radius-sm);margin-top:8px;font-size:14px;background:#F9FAFB;">Olá ${U.esc(m.remetente_nome)}, recebemos sua solicitação e estamos analisando os lotes informados. Retornaremos em breve.</textarea></div>`:''}`;
-    this.openModal('Detalhe do e-mail', body, m.status_processamento==='Pendente' ? `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-criar-sol-email">Criar solicitação</button>` : `<button class="btn btn-secondary" data-close>Fechar</button>`, true);
-    if(m.status_processamento==='Pendente'){
-      document.getElementById('btn-criar-sol-email').addEventListener('click', ()=>{
-        const user = Store.get('usuarios').find(u=>u.email === m.remetente); if(!user){ U.toast('Remetente não cadastrado como usuário.','error'); return; }
-        const novaSol = Store.add('solicitacoes', { numero: 'SOL-2025-' + String(Store.get('solicitacoes').length + 1).padStart(4,'0'), solicitante_id: user.id, solicitante_nome: user.nome, setor: user.setor, data_criacao: U.todayISO(), situacao: 'Recebida', observacoes: 'Criada via e-mail simulado.' });
-        m.lotes_identificados.forEach(l=>{ Store.get('fichas').filter(f=>f.lote===l).forEach(f=>{ Store.add('itens_solicitacao', { solicitacao_id: novaSol.id, ficha_id: f.id, situacao_item: 'Disponível' }); }); });
-        Store.update('emails', m.id, { status_processamento: 'Processado', solicitacao_id: novaSol.id });
-        this.closeModal(); U.toast('Solicitação criada a partir do e-mail!','success'); this.navigate('solicitacoes');
-      });
-    }
-  },
   abrirDeclararDevolucao(empId){
     const e = Store.get('emprestimos').find(x=>x.id===empId); const f = U.findFicha(e.ficha_id);
     const body = `<p style="font-size:14px;">Você está informando a devolução da ficha <strong>Lote ${U.esc(f.lote)} — ${U.esc(f.codigo_produto)}</strong>.</p><p style="font-size:13px;color:var(--text-muted);margin-top:12px;">O administrador do setor precisará confirmar o recebimento físico antes de encerrar o empréstimo.</p>`;
@@ -517,19 +460,6 @@ const App = {
       Store.update('emprestimos', empId, { status: 'Devolução informada', data_devolucao_informada: U.todayISO() });
       Store.add('historico', { ficha_id: e.ficha_id, usuario_responsavel: e.recebedor_nome, tipo_movimentacao: 'Devolução informada', descricao: 'Usuário informou a devolução da ficha.', data_hora: U.todayISO() });
       this.closeModal(); U.toast('Devolução declarada! Aguarde a conferência do administrador.','success'); this.renderScreen();
-    });
-  },
-  abrirUserForm(userId){
-    const isEdit = !!userId;
-    const u = isEdit ? Store.get('usuarios').find(x=>x.id===userId) : { nome:'', email:'', senha:'', setor:'', perfil:'solicitante', ativo:true };
-    const setores = ['Produção','Qualidade','Engenharia','Logística','Administração'];
-    const body = `<div class="form-grid"><div class="field"><label>Nome</label><input type="text" id="u-nome" value="${U.esc(u.nome)}" required></div><div class="field"><label>E-mail</label><input type="email" id="u-email" value="${U.esc(u.email)}" required></div><div class="field"><label>Senha</label><input type="text" id="u-senha" value="${U.esc(u.senha)}" required></div><div class="field"><label>Setor</label><select id="u-setor">${setores.map(s=>`<option ${s===u.setor?'selected':''}>${s}</option>`).join('')}</select></div><div class="field"><label>Perfil</label><select id="u-perfil"><option value="solicitante" ${u.perfil==='solicitante'?'selected':''}>Solicitante</option><option value="admin" ${u.perfil==='admin'?'selected':''}>Administrador</option></select></div><div class="field"><label>Status</label><select id="u-ativo"><option value="true" ${u.ativo?'selected':''}>Ativo</option><option value="false" ${!u.ativo?'selected':''}>Inativo</option></select></div></div>`;
-    this.openModal(isEdit?'Editar usuário':'Novo usuário', body, `<button class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" id="btn-salvar-user">Salvar</button>`);
-    document.getElementById('btn-salvar-user').addEventListener('click', ()=>{
-      const data = { nome: document.getElementById('u-nome').value.trim(), email: document.getElementById('u-email').value.trim(), senha: document.getElementById('u-senha').value.trim(), setor: document.getElementById('u-setor').value, perfil: document.getElementById('u-perfil').value, ativo: document.getElementById('u-ativo').value === 'true' };
-      if(!data.nome || !data.email || !data.senha){ U.toast('Preencha todos os campos.','error'); return; }
-      if(isEdit) Store.update('usuarios', userId, data); else Store.add('usuarios', data);
-      this.closeModal(); U.toast('Usuário salvo!','success'); this.renderScreen();
     });
   },
   gerarRelatorio(){
@@ -575,9 +505,6 @@ const App = {
     historico: function(){ this.renderHistorico(); document.getElementById('f-hist-busca')?.addEventListener('input', ()=>this.renderHistorico()); document.getElementById('btn-hist-limpar')?.addEventListener('click', ()=>{ document.getElementById('f-hist-busca').value = ''; this.renderHistorico(); }); },
     relatorios: function(){ document.getElementById('rel-gerar')?.addEventListener('click', ()=>this.gerarRelatorio()); document.getElementById('rel-print')?.addEventListener('click', ()=>window.print()); },
     planilha: function(){ document.getElementById('btn-sync')?.addEventListener('click', ()=>{ const agora = U.todayISO(); Store.get('fichas').forEach(f=>Store.update('fichas', f.id, {ultima_consulta: agora})); U.toast('Planilha sincronizada (simulado).','info'); this.renderScreen(); }); },
-    emails: function(){ document.querySelectorAll('[data-email-ver]').forEach(b=>b.addEventListener('click', ()=>this.abrirEmail(Number(b.dataset.emailVer)))); },
-    usuarios: function(){ document.getElementById('btn-add-user')?.addEventListener('click', ()=>this.abrirUserForm()); document.querySelectorAll('[data-edit-user]').forEach(b=>b.addEventListener('click', ()=>this.abrirUserForm(Number(b.dataset.editUser)))); },
-    configuracoes: function(){ document.getElementById('btn-reset')?.addEventListener('click', ()=>{ if(confirm('Tem certeza que deseja restaurar todos os dados de demonstração? Isso apagará suas alterações.')){ Store.reset(); U.toast('Dados restaurados!','success'); this.navigate('dashboard'); } }); },
     'nova-solicitacao': function(){
       this.state.novaItems = this.state.novaItems || [];
       document.getElementById('btn-add-item')?.addEventListener('click', ()=>{ this.state.novaItems.push({ lote:'' }); this.renderScreen(); });
