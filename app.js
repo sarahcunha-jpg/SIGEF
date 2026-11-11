@@ -10,11 +10,11 @@ const U = {
     setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); }, 3500);
   },
   badgeSol(sit){
-    const map = {'Pendente':'badge-gray','Em Separação':'badge-warning','Aguardando Devolução':'badge-orange','Aguardando Confirmação':'badge-purple','Finalizada':'badge-green'};
+    const map = {'Pendente':'badge-gray','Em Separação':'badge-yellow','Aguardando Devolução':'badge-orange','Aguardando Confirmação':'badge-purple','Finalizada':'badge-green'};
     return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
   },
   badgeItem(sit){
-    const map = {'Pendente':'badge-gray','Separando':'badge-warning','Entregue':'badge-green','Devolução Solicitada':'badge-purple','Devolvido':'badge-blue'};
+    const map = {'Pendente':'badge-gray','Separando':'badge-yellow','Entregue':'badge-green','Devolução Solicitada':'badge-purple','Devolvido':'badge-blue'};
     return `<span class="badge ${map[sit]||'badge-gray'}">${U.esc(sit)}</span>`;
   },
   badgeFicha(sit){
@@ -63,7 +63,7 @@ const App = {
         <aside class="sidebar ${this.state.sidebarOpen?'open':''}" id="sidebar">
           <div class="sidebar-logo"><div class="sigef">SIGEF</div></div>
           <nav class="nav" id="nav"></nav>
-          <div class="sidebar-footer">v3.20</div>
+          <div class="sidebar-footer">v3.21</div>
         </aside>
         <div class="main">
           <header class="header">
@@ -83,7 +83,7 @@ const App = {
   },
   renderNav(){
     const user = Auth.current(); const admin = user.perfil==='admin';
-    const adminItems = [['dashboard','Painel','��'],['solicitacoes','Gerenciar Solicitações','📥'],['fichas','Consulta de Fichas','🗂️']];
+    const adminItems = [['dashboard','Painel','📊'],['solicitacoes','Gerenciar Solicitações','📥'],['fichas','Consulta de Fichas','🗂️']];
     const userItems = [['dashboard','Meu Painel','📊'],['nova-solicitacao','Nova Solicitação','➕'],['minhas-solicitacoes','Minhas Solicitações','📥']];
     const items = admin ? adminItems : userItems;
     const nav = document.getElementById('nav');
@@ -107,7 +107,17 @@ const App = {
     const map = {dashboard:()=>this.screenDashboard(),solicitacoes:()=>this.screenSolicitacoes(),'solicitacao-detalhe':()=>this.screenSolicitacaoDetalhe(params),fichas:()=>this.screenFichas(),'nova-solicitacao':()=>this.screenNovaSolicitacao(),'minhas-solicitacoes':()=>this.screenMinhasSolicitacoes()};
     return (map[screen]||(()=>'<div class="card">Tela não encontrada.</div>'))();
   },
-  metricCard(label, value){ return `<div class="card metric"><div class="label">${U.esc(label)}</div><div class="value">${value}</div></div>`; },
+  
+  // NOVO MÉTODO QUE GERA O CARD ESTILO IMAGEM
+  metricCard(label, value, icon='📄', color='blue'){ 
+    return `<div class="metric-card">
+      <div class="metric-icon ${color}">${icon}</div>
+      <div class="metric-content">
+        <div class="metric-label">${U.esc(label)}</div>
+        <div class="metric-value">${value}</div>
+      </div>
+    </div>`; 
+  },
   
   fichaEstaEmprestada(fichaId) {
     if (!fichaId) return null;
@@ -176,7 +186,6 @@ const App = {
     const sol = Store.get('solicitacoes').find(s => s.id === solId);
     if(!sol) return;
     
-    // FILTRO ESTRITO: Pega APENAS os itens com status 'Separando'
     const itensFiltrados = Store.get('itens_solicitacao').filter(i => 
       i.solicitacao_id === solId && 
       i.situacao_item === 'Separando'
@@ -196,7 +205,6 @@ const App = {
       </tr>`;
     }).join('');
 
-    // NOVO DESIGN DO COMPROVANTE
     const body = `
       <div class="receipt">
         <div class="receipt-header">
@@ -250,7 +258,6 @@ const App = {
     this.openModal('Imprimir Comprovante', body, `<button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="btn-print-receipt">🖨️ Imprimir</button>`, true);
     
     document.getElementById('btn-print-receipt').addEventListener('click', () => {
-      // Pequeno delay para garantir que a interface do modal terminou de renderizar antes de abrir o print
       setTimeout(() => window.print(), 100);
     });
   },
@@ -274,38 +281,39 @@ const App = {
       const fRevisao = fichas.filter(f=>f.situacao_planilha==='Em revisão').length;
       const fNaoEncontradas = itens.filter(i => i.ficha_id === null).length;
 
+      // NOVO LAYOUT DO DASHBOARD COM ÍCONES
       return `
         <div class="grid grid-4">
-          ${this.metricCard('Fichas Entregues', qtdFichasEntregues)}
-          ${this.metricCard('Aguardando Confirmação', qtdAguardandoConfirmacao)}
-          ${this.metricCard('Fichas Devolvidas', qtdFichasDevolvidas)}
-          ${this.metricCard('Solicitações Finalizadas', solConcluidas)}
+          ${this.metricCard('Fichas Entregues', qtdFichasEntregues, '📦', 'purple')}
+          ${this.metricCard('Aguardando Confirmação', qtdAguardandoConfirmacao, '⏳', 'orange')}
+          ${this.metricCard('Fichas Devolvidas', qtdFichasDevolvidas, '✅', 'green')}
+          ${this.metricCard('Solicitações Finalizadas', solConcluidas, '📋', 'blue')}
         </div>
 
         <div class="section card">
           <div class="section-head"><h3>Status do Acervo de Fichas</h3></div>
           <div class="grid grid-3" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--success);">
+            <div style="padding:16px; background:#F8FAFC; border-radius:12px; border-left:4px solid var(--success);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fArquivadas}</div>
               <div style="font-size:13px; color:var(--text-muted);">Arquivadas</div>
             </div>
-            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
+            <div style="padding:16px; background:#F8FAFC; border-radius:12px; border-left:4px solid var(--warning);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fCorrecao}</div>
               <div style="font-size:13px; color:var(--text-muted);">Em Correção</div>
             </div>
-            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
+            <div style="padding:16px; background:#F8FAFC; border-radius:12px; border-left:4px solid var(--warning);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fFP}</div>
               <div style="font-size:13px; color:var(--text-muted);">Pendente de FP</div>
             </div>
-            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--warning);">
+            <div style="padding:16px; background:#F8FAFC; border-radius:12px; border-left:4px solid var(--warning);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fRA}</div>
               <div style="font-size:13px; color:var(--text-muted);">Pendente de RA</div>
             </div>
-            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--info);">
+            <div style="padding:16px; background:#F8FAFC; border-radius:12px; border-left:4px solid var(--info);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fRevisao}</div>
               <div style="font-size:13px; color:var(--text-muted);">Em Revisão</div>
             </div>
-            <div style="padding:16px; background:var(--bg-body); border-radius:8px; border-left:4px solid var(--danger);">
+            <div style="padding:16px; background:#F8FAFC; border-radius:12px; border-left:4px solid var(--danger);">
               <div style="font-size:24px; font-weight:700; color:var(--text-main);">${fNaoEncontradas}</div>
               <div style="font-size:13px; color:var(--text-muted);">Não Encontradas</div>
             </div>
@@ -323,13 +331,13 @@ const App = {
       const minhas = Store.get('solicitacoes').filter(s=>s.solicitante_id===user.id);
       return `
         <div class="grid grid-3">
-          ${this.metricCard('Minhas Solicitações', minhas.length)}
-          ${this.metricCard('Aguardando Devolução', minhas.filter(s=>s.situacao==='Aguardando Devolução').length)}
-          ${this.metricCard('Finalizadas', minhas.filter(s=>s.situacao==='Finalizada').length)}
+          ${this.metricCard('Minhas Solicitações', minhas.length, '📄', 'blue')}
+          ${this.metricCard('Aguardando Devolução', minhas.filter(s=>s.situacao==='Aguardando Devolução').length, '⏳', 'orange')}
+          ${this.metricCard('Finalizadas', minhas.filter(s=>s.situacao==='Finalizada').length, '✅', 'green')}
         </div>
         <div class="section card">
           <div class="section-head"><h3>Últimas Solicitações</h3><button class="btn btn-primary btn-sm" data-nav="nova-solicitacao">+ Criar Nova</button></div>
-          ${minhas.slice(0,5).map(s=>`<div style="padding:12px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; cursor:pointer;" data-sol-detail="${s.id}"><strong>${s.numero}</strong> ${U.badgeSol(s.situacao)}</div>`).join('') || '<div class="table-empty">Nenhuma solicitação criada.</div>'}
+          ${minhas.slice(0,5).map(s=>`<div style="padding:16px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; cursor:pointer;" data-sol-detail="${s.id}"><strong>${s.numero}</strong> ${U.badgeSol(s.situacao)}</div>`).join('') || '<div class="table-empty">Nenhuma solicitação criada.</div>'}
         </div>`;
     }
   },
@@ -441,7 +449,7 @@ const App = {
       <div id="nova-itens">${items.map((it,i)=>`
         <div class="item-row" data-idx="${i}" style="display:flex; flex-direction:column; gap:4px; margin-bottom:16px;">
           <div style="display:flex; gap:12px;">
-            <input type="text" class="nova-lote" value="${it.lote||''}" placeholder="Digite o Lote (ex: 45821)" style="padding:10px;border:1px solid var(--border);border-radius:8px;flex:1;">
+            <input type="text" class="nova-lote" value="${it.lote||''}" placeholder="Digite o Lote (ex: 45821)" style="padding:12px 14px;border:1px solid var(--border);border-radius:8px;flex:1;">
             <button class="btn btn-danger btn-rm-item" data-idx="${i}">X</button>
           </div>
           <div class="lote-feedback" id="feedback-${i}" style="font-size:13px; margin-top:4px;">${it.lote ? this.getLoteFeedback(it.lote) : ''}</div>
